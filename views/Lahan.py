@@ -1,0 +1,305 @@
+import streamlit as st
+import plotly.express as px
+import pandas as pd
+from data_loader import load_aset_data
+from datetime import datetime
+import time
+
+#configurasi
+def show_Lahan():
+    st.title("🌱 Dashboard SPER Lahan") 
+# st.title("🌱 Dashboard SPER Lahan")     
+# st.set_page_config(layout="wide")
+
+    # Realtime Tanggal & Waktu
+    # ======================
+    time_placeholder = st.empty()
+    now = datetime.now()
+    time_str = now.strftime('%H:%M')
+    time_placeholder.markdown(
+        f"""
+        <div style="text-align:right; font-size:17px; color:gray; margin-bottom:50px;">
+            📅 {now.strftime('%d %B %Y')} &nbsp; | &nbsp; {time_str} WIB
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    time.sleep(1)
+
+    #definisi nilai rupiah
+    def format_rupiah(n):
+        return f"Rp {n:,.0f}".replace(",", ".")
+    def format_rupiah_singkat(n):
+        if n >= 1_000_000_000_000:
+            return f"Rp {n/1_000_000_000_000:.2f} T"
+        elif n >= 1_000_000_000:
+            return f"Rp {n/1_000_000_000:.2f} M"
+        elif n >= 1_000_000:
+            return f"Rp {n/1_000_000:.2f} jt"
+        else:
+            return f"Rp {n:,.0f}".replace(",", ".")
+    def label_nilai_id(n):
+        if n >= 1_000_000_000:
+            return f"{n/1_000_000_000:.3f} M".rstrip("0").rstrip(".")
+        elif n >= 1_000_000:
+            return f"{n/1_000_000:.3f} jt".rstrip("0").rstrip(".")
+        else:
+            return f"{n:,.0f}".replace(",", ".")
+    def format_rupiah_full(n):
+        return f"Rp {n:,.0f}".replace(",", ".")
+    def format_tanggal_indo(val):
+        if pd.isna(val):
+            return ""
+        try:
+            return val.strftime("%d-%m-%Y")
+        except:
+            return val
+    # =========================
+    #load data
+    df = load_aset_data()
+
+    # =========================
+    #filter data
+    df = df[df["jenis_aset"] == "Lahan"].copy()
+
+    #==========================
+    #sidebar 
+    with st.sidebar:
+        st.header("Filter Lahan")
+        # Filter Tahun
+        tahun_list = sorted(
+            df["tahun"]
+            .dropna()
+            .astype(int)
+            .unique()
+        )
+        tahun = st.multiselect("Tahun SPER", tahun_list)
+        st.session_state["tahun_selected"] = tahun
+
+        if tahun:
+            df = df[df["tahun"].isin(tahun)]
+
+        # Filter Penyewa
+        penyewa_list = sorted(df["penyewa"].dropna().unique())
+        penyewa = st.multiselect("Penyewa", penyewa_list)
+
+        if penyewa:
+            df = df[df["penyewa"].isin(penyewa)]
+
+        # Filter Status
+        status_list = sorted(df["status_aset"].dropna().unique())
+        status_ = st.multiselect("Status Lahan", status_list)
+
+        if status_:
+            df = df[df["status_aset"].isin(status_)]
+
+    # ===================
+    #normalisasi
+    df["nilai"] = pd.to_numeric(df["nilai"], errors="coerce").fillna(0)
+    df["durasi_bulan"] = pd.to_numeric(df["durasi_bulan"], errors="coerce").fillna(0)
+    df["luas_m2"] = pd.to_numeric(df["luas_m2"], errors="coerce").fillna(0)
+
+    # ===================
+    #data sper nomor_surat
+    df_sper_valid = df[
+        df["nomor_surat"].notna() &
+        (df["nomor_surat"].str.strip() != "") &
+        (df["nomor_surat"].str.strip() != "-")
+    ].copy()
+    # ==================
+    # inisialisasi tahun saat ini
+    current_year = datetime.now().year
+    selected_year = st.session_state.get("tahun_selected")
+
+    if selected_year:
+        df_chart = df_sper_valid[df_sper_valid["tahun"].isin(selected_year)].copy()
+    else:
+        # default: tahun saat ini
+        df_chart = df_sper_valid[df_sper_valid["tahun"] == current_year].copy()
+
+    if df_chart.empty:
+        st.warning("Tidak ada data SPER untuk tahun yang dipilih")
+        st.stop()
+
+    # ==================
+    #KPI metrik
+    total_sper = df_chart["nomor_surat"].nunique()
+    total_luas = df_chart["luas_m2"].sum()
+    total_nilai = df_chart["nilai"].sum()
+
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Total SPER", total_sper)
+    c2.metric("Total Luas Lahan", f"{total_luas:,.0f} m²")
+    c3.metric("Total Nilai Kontribusi (Rp)", format_rupiah_singkat(total_nilai))
+
+    st.caption(f"Nilai sebenarnya: {format_rupiah(total_nilai)}")
+    st.divider()
+
+    # ==============
+    # Tren SPER
+    st.subheader("Tren Nilai Kontribusi SPER per Tahun")
+    trend = (
+        df_sper_valid
+        .groupby("tahun", as_index=False)
+        .agg(total_nilai=("nilai","sum"))
+        .sort_values("tahun")
+    )
+    fig_trend = px.line(
+        trend,
+        x="tahun",
+        y="total_nilai",
+        markers=True,
+        labels={
+            "tahun": "Tahun Mulai SPER",
+            "jumlah_sper": "Total Nilai Kontribusi (Rp)"
+        }
+    )
+    fig_trend.update_traces(
+        text=trend["total_nilai"].apply(label_nilai_id),
+        textposition="top center",
+        mode="lines+markers+text",
+        hovertemplate="Tahun: %{x}<br>Rp %{y}<extra></extra>"
+    )
+    fig_trend.update_xaxes(
+        tickmode="linear",
+        tickformat="d"
+    )
+    fig_trend.update_yaxes(tickformat=",")
+    st.plotly_chart(fig_trend, width="stretch")
+    st.divider()
+
+    # ========================================
+    # Nilai kontribusi per Penyewa
+    st.subheader("Distribusi Lahan Berdasarkan Luas Tanah dan Kondisi Aset")
+    nilai_penyewa = (
+        df_chart
+        .groupby("penyewa")["nilai"]
+        .sum()
+        .reset_index()
+    )
+    nilai_penyewa["label"] = nilai_penyewa["nilai"].apply(format_rupiah_singkat)
+    fig_nilai = px.bar(
+        nilai_penyewa.sort_values("nilai"),
+        x="penyewa",
+        y="nilai",
+        color="penyewa",
+        text="label",
+        labels={
+            "penyewa": "Penyewa",
+            "nilai": "Nilai Kontribusi (Rp)"
+        },
+        title= "Nilai Kontribusi Berdasarkan Penyewa"
+    )
+    fig_nilai.update_traces(
+        textposition = "outside",
+        hovertemplate="Penyewa: %{x}<br>Nilai Kontribusi: %{y}<extra></extra>"
+    )
+    fig_nilai.update_layout(
+        height=580,
+        showlegend=False,
+        yaxis_tickformat=","  # format ribuan
+    )
+
+    # ===========
+    # pie chart
+    status_lahan = (
+        df_chart
+        .groupby("status_aset")
+        .size()
+        .reset_index(name="jumlah")
+    )
+    fig_status = px.pie(
+        status_lahan,
+        names="status_aset",
+        values="jumlah",
+        hole=0.4,
+        title="Proporsi Jumlah Kondisi Aset Lahan"
+    )
+    fig_status.update_traces(
+        textinfo="percent+label",
+        hovertemplate=
+            "Status Aset: %{label}<br> Jumlah SPER: %{value}<extra></extra>"
+    )
+
+    c4, c5 = st.columns([1.8,1])
+    with c4:
+        st.plotly_chart(fig_nilai, width="stretch")
+    with c5:
+        st.plotly_chart(fig_status, width="stretch")
+
+    st.divider()
+    # Luas lahan per Penyewa
+    # ======================================================
+    luas_penyewa = (
+        df_chart
+        .groupby("penyewa")["luas_m2"]
+        .sum()
+        .reset_index()
+    )
+    luas_penyewa["label"] = luas_penyewa["luas_m2"].map(
+        lambda x: f"{x:,} m²".replace(",", ".")
+    )
+    fig_luas = px.bar(
+        luas_penyewa.sort_values("luas_m2"),
+        x="luas_m2",
+        y="penyewa",
+        text="label",
+        labels={
+            "luas_m2": "Luas Lahan (m²)",
+            "penyewa": "Penyewa"
+        },
+        title="Luas Lahan Berdasarkan Penyewa"
+    )
+    fig_luas.update_traces(
+        textposition = "outside",
+        hovertemplate="Penyewa: %{y}<br>Luas m²: %{x}<extra></extra>"
+    )
+    fig_luas.update_layout(height=450)
+    st.plotly_chart(fig_luas, width="stretch")
+    
+    st.divider()
+
+    # Tabel Detail
+    # ======================================================
+    st.subheader("📋 Detail SPER Lahan")
+    df = (
+        df
+        .sort_values("kode_aset", ascending=True)
+        .reset_index(drop=True)
+    )
+    df = df.reset_index(drop=True)
+    df.index = df.index + 1
+    df["tanggal_mulai"] = df["tanggal_mulai"].apply(format_tanggal_indo)
+    df["tanggal_selesai"] = df["tanggal_selesai"].apply(format_tanggal_indo)
+    df["nilai_rupiah"] = df["nilai"].apply(format_rupiah)
+
+    st.dataframe(
+        df[[
+            "nomor_surat",
+            "kode_aset",
+            "lokasi",
+            "luas_m2",
+            "penyewa",
+            "pic_num",
+            "nilai_rupiah",
+            "tanggal_mulai",
+            "tanggal_selesai",
+            "keterangan",
+            "status_aset"
+        ]].rename(columns={
+            "nomor_surat": "Nomor Surat",
+            "kode_aset": "Kode Lahan",
+            "lokasi": "Lokasi",
+            "luas_m2": "Luas (m²)",
+            "penyewa": "Penyewa",
+            "pic_num": "PIC",
+            "nilai_rupiah": "Nilai Kontribusi",
+            "tanggal_mulai": "Tanggal Mulai",
+            "tanggal_selesai": "Tanggal Selesai",
+            "keterangan": "Keterangan",
+            "status_aset": "Status"
+        }),
+        width="stretch"
+    )
+
+

@@ -1,0 +1,58 @@
+
+[
+    {
+        "kode_lokasi": "ex_kamtib",
+        "nama_lokasi": "Gedung Ex-Kamtib",
+        "lat": "-7.205896369911044",
+        "lon": "112.74285025342144"
+    },
+    {
+        "kode_lokasi": "niaga",
+        "nama_lokasi": "Div. Kapal Niaga",
+        "lat": "-7.197696103885678",
+        "lon": "112.7366468241892"
+    },
+    {
+        "kode_lokasi": "ATM_BNI",
+        "nama_lokasi": "ATM BNI",
+        "lat": "-7.205211508644232",
+        "lon": "112.74212015372831"
+    },
+    {
+        "kode_lokasi": "ATM_BRI",
+        "nama_lokasi": "ATM BRI",
+        "lat": "-7.205238118235756",
+        "lon": "112.74197174202119"
+    },
+    {
+        "kode_lokasi": "ATM_MANDIRI",
+        "nama_lokasi": "ATM Mandiri",
+        "lat": "-7.205309077138818",
+        "lon": "112.74170710427838"
+    },
+    {
+        "kode_lokasi": "dok_beluga",
+        "nama_lokasi": "Dok. Beluga",
+        "lat": "-7.204998",
+        "lon": "112.739819"
+    },
+    {
+        "kode_lokasi": "PIP",
+        "nama_lokasi": "Gedung PIP",
+        "lat": "-7.205429",
+        "lon": "112.741667"
+    },
+    {
+        "kode_lokasi": "kesind",
+        "nama_lokasi": "Gedung Kesind",
+        "lat": "-7.206990990323908",
+        "lon": "112.74327658279987"
+    },
+    {
+        "kode_lokasi": "kpm",
+        "nama_lokasi": "Gedung KPM",
+        "lat": "-7.20527870939247",
+        "lon": "112.74243259214857"
+    }
+]   
+
