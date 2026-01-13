@@ -17,7 +17,6 @@ def cek_kode_lahan_exist(kode_lahan):
     conn.close()
     return exists
 
-
 def hitung_durasi_bulan(tgl_mulai_lahan, tgl_selesai_lahan):
     if not tgl_mulai_lahan or not tgl_selesai_lahan or tgl_selesai_lahan < tgl_mulai_lahan:
         return 0
@@ -27,16 +26,13 @@ def hitung_durasi_bulan(tgl_mulai_lahan, tgl_selesai_lahan):
         + 1
     )
 
-
 def format_rupiah(val):
     return f"Rp {int(val or 0):,}".replace(",", ".")
-
 
 def parse_rupiah(text):
     if not text:
         return 0
     return int(text.replace("Rp", "").replace(".", "").strip())
-
 
 # =====================================================
 # MASTER LAHAN
@@ -53,7 +49,6 @@ def generate_kode_lahan():
     conn.close()
     return f"LH-{(last or 0) + 1}"
 
-
 def get_lokasi_by_kode(kode_lahan):
     conn = get_connection()
     cur = conn.cursor()
@@ -61,7 +56,6 @@ def get_lokasi_by_kode(kode_lahan):
     row = cur.fetchone()
     conn.close()
     return row[0] if row else ""
-
 
 def get_or_create_lahan(kode_lahan, lokasi_lahan):
     conn = get_connection()
@@ -93,11 +87,9 @@ for f in fields_str:
 for f in fields_num:
     st.session_state.setdefault(f, 0)
 
-
 st.session_state.setdefault("tgl_mulai_lahan", date.today())
 st.session_state.setdefault("tgl_selesai_lahan", date.today())
 st.session_state.setdefault("success_submit_lahan", False)
-
 
 # =====================================================
 # DIALOG SUCCESS

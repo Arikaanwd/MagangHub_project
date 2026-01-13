@@ -18,7 +18,6 @@ def load_lokasi_master(json_path="D:/MagangHub/Project/maps/lokasi_maps.json"):
     df["nama_lokasi"] = df["nama_lokasi"].str.strip()
     return df
 
-
 # =============================
 # RENDER MAP
 # =============================
@@ -44,8 +43,8 @@ def render_map():
     )
 
     jenis_aset_summary["jenis_text"] = (
-        "- " + jenis_aset_summary["jenis_aset"]
-        + " (" + jenis_aset_summary["jumlah"].astype(str) + ")"
+        jenis_aset_summary["jenis_aset"]
+        + " (" + jenis_aset_summary["jumlah"].astype(str) + ")" + ","
     )
 
     jenis_aset_grouped = (
@@ -126,9 +125,8 @@ def render_map():
     for _, row in df_map.iterrows():
         popup_html = f"""
         <div>
-            <b>{row['nama_lokasi']}</b><br><br>
-            <b>Jenis Aset:</b><br>
-            {row['jenis_text']}<br><br>
+            <b>{row['nama_lokasi']}</b><br>
+            Jenis Aset : {row['jenis_text']}<br>
             Total Aset : {int(row['total_aset'])}<br>
             Disewa : {int(row['disewa'])}<br>
             Kosong : {int(row['kosong'])}<br>

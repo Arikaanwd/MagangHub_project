@@ -84,26 +84,6 @@ def hide_sidebar():
         unsafe_allow_html=True
     )
 
-# # =====================================================
-# # ❗ LOGIN GATE (PERBAIKAN UTAMA)
-# # =====================================================
-# if not st.session_state.is_logged_in:
-#     show_login(cookie)   # ❗ WAJIB kirim cookie
-#     st.stop()
-
-# # =====================================================
-# # Inisialisasi Session State
-# # =====================================================
-
-# if "is_logged_in" not in st.session_state:
-#     st.session_state.is_logged_in = False
-
-# if "mode" not in st.session_state:
-#     st.session_state.mode = "home"  # home | dashboard | input
-
-# if "page" not in st.session_state:
-#     st.session_state.page = None
-
 # =====================================================
 # Sidebar
 # =====================================================
