@@ -155,26 +155,23 @@ def show():
     # FORM
     # ============================
     with st.form("form_kantor"):
-        st.session_state.nomor_surat_kantor = st.text_input(
-            "No. Surat",
-            value=st.session_state.get("nomor_surat_kantor", "")
-        )
+        st.text_input("No. Surat", value=st.session_state.get("nomor_surat_kantor", ""))
         
         col3, col4, col5 = st.columns(3)
         with col3:
             st.session_state.lokasi_kantor = st.text_input("Lokasi", value=st.session_state.lokasi_kantor)
         with col4:
-            st.session_state.penyewa_kantor = st.text_input("Penyewa", value=st.session_state.penyewa_kantor)
+            st.text_input("Penyewa", key="penyewa_kantor")
         with col5:
-            st.session_state.pic_kantor = st.text_input("PIC", value=st.session_state.pic_kantor)
+            st.text_input("PIC", key="pic")
 
         col6, col7, col8, col9 = st.columns(4)
         with col6:
-            st.session_state.luas_kantor = st.number_input("Luas (m²)", value=float(st.session_state.luas_kantor), min_value=0.0, step=1.0)
+            st.number_input("Luas (m²)", key="luas_kantor", min_value=0.0, step=1.0)
         with col7:
-            st.session_state.tgl_mulai_kantor = st.date_input("Tanggal Mulai", value=st.session_state.tgl_mulai_kantor)
+            st.date_input("Tanggal Mulai", key="tgl_mulai_kantor")
         with col8:
-            st.session_state.tgl_selesai_kantor = st.date_input("Tanggal Selesai", value=st.session_state.tgl_selesai_kantor)
+            st.date_input("Tanggal Selesai", key="tgl_selesai_kantor")
         with col9:
             st.session_state.durasi_kantor = hitung_durasi_bulan(st.session_state.tgl_mulai_kantor, st.session_state.tgl_selesai_kantor)
             st.number_input("Durasi (bulan)", value=st.session_state.durasi_kantor, disabled=True)

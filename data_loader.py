@@ -17,7 +17,7 @@ def load_aset_data():
         mk.kode_kantor AS kode_aset,
         mk.lokasi,
         mk.status_aset AS status_aset,
-        mk.keterangan,
+        NULL as keterangan,
         tk.durasi_bulan,
         tk.nomor_surat,
         tk.penyewa,

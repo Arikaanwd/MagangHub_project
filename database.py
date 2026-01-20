@@ -7,7 +7,7 @@ def get_connection():
         host="localhost",
         user="root",
         password="",
-        database="sper_db"
+        database="aset_sper"
     )
 
 def fetch(query):

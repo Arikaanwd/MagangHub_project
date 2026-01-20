@@ -8,7 +8,6 @@ import time
 import folium 
 from streamlit_folium import st_folium
 from maps.leaflet_maps import render_map
-from auth.session_manager import sync_session_from_cookie
 
 # ===== Cek login di awal =====
 # sync_session_from_cookie(cookie)
@@ -109,32 +108,93 @@ def show_Dashboard_Global():
 
     # DATA UNTUK SEMUA CHART
     # ======================
-    df_chart = df_sper_valid.copy()
+    # df_chart = df_filtered.copy()
 
-    # FILTER TAHUN (JANGAN RESET DATA)
     # ======================
-    selected_year = st.session_state.get("tahun_selected")
-    if selected_year:
-        df_chart = df_chart[df_chart["tahun"].isin(selected_year)]
+    # FILTER DATA (DI BAWAH METRIC)
+    # ======================
+    st.subheader("Filter Data")
 
-    if df_chart.empty:
-        st.warning("Tidak ada data untuk filter yang dipilih")
-        st.stop()
+    f1, f2, f3 = st.columns(3)
+
+    # ======================
+    # 1. FILTER TAHUN
+    # ======================
+    with f1:
+        tahun_selected = st.multiselect(
+            "Tahun",
+            options=sorted(df_sper_valid["tahun"].dropna().astype(int).unique()),
+            default=st.session_state.get("tahun_selected", [])
+        )
+
+    # ======================
+    # 2. FILTER JENIS ASET
+    # ======================
+    with f2:
+        jenis_selected = st.multiselect(
+            "Jenis Aset",
+            options=sorted(df_sper_valid["jenis_aset"].dropna().unique()),
+            default=st.session_state.get("jenis_selected", [])
+        )
+
+    # ======================
+    # 3. BUAT DATA SEMENTARA UNTUK OPSI PENYEWA
+    # ======================
+    df_penyewa_option = df_sper_valid.copy()
+
+    if tahun_selected:
+        df_penyewa_option = df_penyewa_option[
+            df_penyewa_option["tahun"].isin(tahun_selected)
+        ]
+
+    if jenis_selected:
+        df_penyewa_option = df_penyewa_option[
+            df_penyewa_option["jenis_aset"].isin(jenis_selected)
+        ]
+
+    # ======================
+    # 4. FILTER PENYEWA (SUDAH TERGANTUNG JENIS ASET)
+    # ======================
+    with f3:
+        penyewa_selected = st.multiselect(
+            "Penyewa",
+            options=sorted(df_penyewa_option["penyewa"].dropna().unique()),
+            default=st.session_state.get("penyewa_selected", [])
+        )
+        
+    # SIMPAN KE SESSION
+    st.session_state["tahun_selected"] = tahun_selected
+    st.session_state["jenis_selected"] = jenis_selected
+    st.session_state["penyewa_selected"] = penyewa_selected
+    
+    df_filtered = df_sper_valid.copy()
+
+    if tahun_selected:
+        df_filtered = df_filtered[df_filtered["tahun"].isin(tahun_selected)]
+
+    if jenis_selected:
+        df_filtered = df_filtered[df_filtered["jenis_aset"].isin(jenis_selected)]
+
+    if penyewa_selected:
+        df_filtered = df_filtered[df_filtered["penyewa"].isin(penyewa_selected)]
+
+    df_chart = df_filtered.copy()
 
     # ======================
     # DATA KHUSUS SUMMARY (DIKUNCI KE TAHUN AKTIF)
     # ======================
     current_year = datetime.now().year
-    selected_year = st.session_state.get("tahun_selected")
 
-    if selected_year:
-        df_summary = df_sper_valid[df_sper_valid["tahun"].isin(selected_year)].copy()
+    if tahun_selected:
+        df_summary = df_filtered.copy()
     else:
-        df_summary = df_sper_valid[df_sper_valid["tahun"] == current_year].copy()
+        df_summary = df_filtered[df_filtered["tahun"] == current_year].copy()
 
     if df_summary.empty:
-        st.warning("Tidak ada data SPER untuk tahun yang dipilih")
+        st.warning("Tidak ada data untuk filter yang dipilih")
         st.stop()
+
+    st.divider()
 
     # Summary Global
     # ======================
@@ -164,7 +224,7 @@ def show_Dashboard_Global():
     c7.metric("SPER Lahan", int(sper_per_aset.get("Lahan", 0)))
     c8.metric("SPER Mess Menanggal", int(sper_per_aset.get("Mess", 0)))
     st.divider()
-    
+
     render_map()
 
     # =============================
@@ -204,13 +264,12 @@ def show_Dashboard_Global():
     # Distribusi & Komposisi
     # ====================== 
     current_year = datetime.now().year
-    selected_year = st.session_state.get("tahun_selected")
 
-    if selected_year:
-        df_chart = df_sper_valid[df_sper_valid["tahun"].isin(selected_year)].copy()
+    if tahun_selected:
+        df_chart = df_filtered.copy()
     else:
-        df_chart = df_sper_valid[df_sper_valid["tahun"] == current_year].copy()
-    
+        df_chart = df_filtered[df_filtered["tahun"] == current_year].copy()  
+
     st.header("Proporsi Aset dan Nilai Kontribusi")
     c9, c10  = st.columns(2)
     with c9:
@@ -448,13 +507,20 @@ def show_Dashboard_Global():
         "Tidak Aktif"
     ]
 
-    # PAKAI DATA MASTER ASET (BUKAN df_sper_valid)
     df_status_raw = df.copy()
+
+    # 🔥 FIX UTAMA: aset fisik harus unik
+    df_status_raw = df_status_raw.drop_duplicates(subset=["kode_aset"])
+
+    # Filter hanya berdasarkan jenis aset
+    if jenis_selected:
+        df_status_raw = df_status_raw[
+            df_status_raw["jenis_aset"].isin(jenis_selected)
+        ]
 
     df_status_raw["status_aset"] = (
         df_status_raw["status_aset"]
-        .fillna("Kosong")
-        .str.strip()
+        .apply(normalize_status)
     )
 
     summary = (
@@ -467,8 +533,11 @@ def show_Dashboard_Global():
     # ===============================
     # PAKSA SEMUA KOMBINASI MUNCUL
     # ===============================
+    all_jenis = df_status_raw["jenis_aset"].unique()
+    all_status = ["Kosong", "Disewa", "Internal", "Tidak Aktif", "Perbaikan"]
+    
     index_full = pd.MultiIndex.from_product(
-        [urutan_aset, urutan_status],
+        [all_jenis, all_status],
         names=["jenis_aset", "status_aset"]
     )
 

@@ -188,7 +188,7 @@ def show():
         with col3:
             st.session_state.penyewa_kontainer = st.text_input("Penyewa")
         with col4:
-            st.session_state.lokasi_kontainer = st.text_input("Lokasi", value=st.session_state.lokasi_kontainer)
+            st.text_input("Lokasi", key="lokasi_kontainer")
 
         col5, col6, col7 = st.columns(3)    
         with col5:
@@ -200,9 +200,9 @@ def show():
 
         col8, col9, col10 = st.columns(3)
         with col8:
-            st.session_state.tgl_mulai_kontainer = st.date_input("Tanggal Mulai", value=st.session_state.tgl_mulai_kontainer)
+            st.date_input("Tanggal Mulai", key="tgl_mulai_kontainer")
         with col9:
-            st.session_state.tgl_selesai_kontainer = st.date_input("Tanggal Selesai", value=st.session_state.tgl_selesai_kontainer)
+            st.date_input("Tanggal Selesai", key="tgl_selesai_kontainer")
         with col10:
             durasi = hitung_durasi_bulan(st.session_state.tgl_mulai_kontainer, st.session_state.tgl_selesai_kontainer)
             st.number_input("Durasi (bulan)", value=durasi, disabled=True)

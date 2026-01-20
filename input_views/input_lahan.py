@@ -137,9 +137,8 @@ def show():
         st.session_state.kode_aset_lahan = generate_kode_lahan()
 
     with st.form("form_lahan"):
-        st.session_state.nomor_surat_lahan = st.text_input(
-            "No. Surat",
-            value=st.session_state.nomor_surat_lahan
+        st.text_input(
+            "No. Surat", key="nomor_surat_lahan"
         )
 
         col3, col4 = st.columns(2)

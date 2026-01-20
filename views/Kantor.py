@@ -4,7 +4,6 @@ import pandas as pd
 from data_loader import load_aset_data
 from datetime import datetime
 import time
-from auth.session_manager import sync_session_from_cookie
 
 # #configurasi
 def show_Kantor():
@@ -65,35 +64,7 @@ def show_Kantor():
     df = df[df["jenis_aset"] == "Kantor"].copy()
 
     #====================
-    # filter
-    # Filter Tahun
-    with st.sidebar:
-        st.header("Filter Kantor")
-        tahun_list = sorted(
-            df["tahun"]
-            .dropna()
-            .astype(int)
-            .unique()
-        )
-        tahun = st.multiselect("Tahun SPER", tahun_list)
-        st.session_state["tahun_selected"] = tahun
-
-        if tahun:
-            df = df[df["tahun"].isin(tahun)]
-
-        # Filter Penyewa
-        penyewa_list = sorted(df["penyewa"].dropna().unique())
-        penyewa = st.multiselect("Penyewa", penyewa_list)
-
-        if penyewa:
-            df = df[df["penyewa"].isin(penyewa)]
-
-        # Filter Status
-        status_list = sorted(df["status_aset"].dropna().unique())
-        status_ = st.multiselect("Status Kantor", status_list)
-
-        if status_:
-            df = df[df["status_aset"].isin(status_)]
+    
     # ===================
     #NORMALISASI
     df["nilai"] = pd.to_numeric(df["nilai"], errors="coerce").fillna(0)
@@ -142,6 +113,42 @@ def show_Kantor():
     c3.metric("Rata - Rata Luas m2", total_luas)
     c4.metric("Total Nilai Kontribusi (Rp)", format_rupiah_singkat(total_nilai))
     st.caption(f"Nilai sebenarnya: {format_rupiah(total_nilai)}")
+    st.divider()
+
+    # filter
+    # Filter Tahun
+    st.header("Filter Kantor")
+
+    a1, a2, a3= st.columns(3)
+
+    with a1:
+        tahun_list = sorted(
+            df["tahun"]
+            .dropna()
+            .astype(int)
+            .unique()
+        )
+        tahun = st.multiselect("Tahun SPER", tahun_list)
+        st.session_state["tahun_selected"] = tahun
+        if tahun:
+            df = df[df["tahun"].isin(tahun)]
+    
+    with a2:
+        # Filter Penyewa
+        penyewa_list = sorted(df["penyewa"].dropna().unique())
+        penyewa = st.multiselect("Penyewa", penyewa_list)
+
+        if penyewa:
+            df = df[df["penyewa"].isin(penyewa)]
+
+    with a3:
+        # Filter Status
+        status_list = sorted(df["status_aset"].dropna().unique())
+        status_ = st.multiselect("Status Kantor", status_list)
+
+        if status_:
+            df = df[df["status_aset"].isin(status_)]
+    
     st.divider()
     # ==============
     # ==============

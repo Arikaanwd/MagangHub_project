@@ -63,36 +63,6 @@ def show_Lahan():
     df = df[df["jenis_aset"] == "Lahan"].copy()
 
     #==========================
-    #sidebar 
-    with st.sidebar:
-        st.header("Filter Lahan")
-        # Filter Tahun
-        tahun_list = sorted(
-            df["tahun"]
-            .dropna()
-            .astype(int)
-            .unique()
-        )
-        tahun = st.multiselect("Tahun SPER", tahun_list)
-        st.session_state["tahun_selected"] = tahun
-
-        if tahun:
-            df = df[df["tahun"].isin(tahun)]
-
-        # Filter Penyewa
-        penyewa_list = sorted(df["penyewa"].dropna().unique())
-        penyewa = st.multiselect("Penyewa", penyewa_list)
-
-        if penyewa:
-            df = df[df["penyewa"].isin(penyewa)]
-
-        # Filter Status
-        status_list = sorted(df["status_aset"].dropna().unique())
-        status_ = st.multiselect("Status Lahan", status_list)
-
-        if status_:
-            df = df[df["status_aset"].isin(status_)]
-
     # ===================
     #normalisasi
     df["nilai"] = pd.to_numeric(df["nilai"], errors="coerce").fillna(0)
@@ -135,6 +105,42 @@ def show_Lahan():
     st.caption(f"Nilai sebenarnya: {format_rupiah(total_nilai)}")
     st.divider()
 
+    # ==============
+    # sidebar
+    st.header("Filter Lahan")
+    
+    h1,h2,h3= st.columns(3)
+    with h1:
+        # Filter Tahun
+        tahun_list = sorted(
+            df["tahun"]
+            .dropna()
+            .astype(int)
+            .unique()
+        )
+        tahun = st.multiselect("Tahun SPER", tahun_list)
+        st.session_state["tahun_selected"] = tahun
+
+        if tahun:
+            df = df[df["tahun"].isin(tahun)]
+    
+    with h2:
+        # Filter Penyewa
+        penyewa_list = sorted(df["penyewa"].dropna().unique())
+        penyewa = st.multiselect("Penyewa", penyewa_list)
+
+        if penyewa:
+            df = df[df["penyewa"].isin(penyewa)]
+    
+    with h3:
+        # Filter Status
+        status_list = sorted(df["status_aset"].dropna().unique())
+        status_ = st.multiselect("Status Lahan", status_list)
+
+        if status_:
+            df = df[df["status_aset"].isin(status_)]
+    
+    st.divider()
     # ==============
     # Tren SPER
     st.subheader("Tren Nilai Kontribusi SPER per Tahun")

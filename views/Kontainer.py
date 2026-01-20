@@ -78,47 +78,6 @@ def show_Kontainer():
 
     #==========================
     #sidebar
-    with st.sidebar:
-        st.header("Filter Kontainer")
-
-        #filter tahun
-        tahun_list = sorted(
-            df["tahun"]
-            .dropna()
-            .astype(int)
-            .unique()
-        )
-        tahun = st.multiselect("Tahun SPER", tahun_list)
-        st.session_state["tahun_selected"] = tahun
-        
-        if tahun:
-            df = df[df["tahun"].isin(tahun)]
-
-        #filter penyewa
-        penyewa_list = sorted(df["penyewa_norm"].dropna().unique())
-        penyewa = st.multiselect("penyewa", penyewa_list)
-
-        if penyewa:
-            df = df[df["penyewa_norm"].isin(penyewa)]
-
-        # Filter Unit Milik
-        unit_milik_list = sorted(df["keterangan"].unique().tolist())
-        unit_milik_selected = st.sidebar.multiselect(
-            "Unit Milik",
-            options=unit_milik_list
-        )
-        if unit_milik_selected:
-            df = df[df["keterangan"].isin(unit_milik_selected)]
-
-        # Filter Volume (Feet)
-        volume_list = sorted(df["volume_feet"].unique().tolist())
-        volume_selected = st.sidebar.multiselect(
-            "Volume (Feet)",
-            options=volume_list
-        )
-        if volume_selected:
-            df = df[df["volume_feet"].isin(volume_selected)]
-
     #==================
     #nomor_surat
     df_sper_valid = df[
@@ -170,6 +129,54 @@ def show_Kontainer():
     st.caption(f"Nilai sebenarnya: {format_rupiah(total_nilai)}")
     st.divider()
 
+    # ==============
+    # sidebar
+    st.header("Filter Kontainer")
+    
+    g1,g2,g3,g4 = st.columns(4)
+    
+    with g1:
+        #filter tahun
+        tahun_list = sorted(
+            df["tahun"]
+            .dropna()
+            .astype(int)
+            .unique()
+        )
+        tahun = st.multiselect("Tahun SPER", tahun_list)
+        st.session_state["tahun_selected"] = tahun
+        
+        if tahun:
+            df = df[df["tahun"].isin(tahun)]
+    
+    with g2:
+        #filter penyewa
+        penyewa_list = sorted(df["penyewa_norm"].dropna().unique())
+        penyewa = st.multiselect("penyewa", penyewa_list)
+
+        if penyewa:
+            df = df[df["penyewa_norm"].isin(penyewa)]
+
+    with g3:
+        # Filter Unit Milik
+        unit_milik_list = sorted(df["keterangan"].unique().tolist())
+        unit_milik_selected = st.sidebar.multiselect(
+            "Unit Milik",
+            options=unit_milik_list
+        )
+        if unit_milik_selected:
+            df = df[df["keterangan"].isin(unit_milik_selected)]
+    with g4:
+        # Filter Volume (Feet)
+        volume_list = sorted(df["volume_feet"].unique().tolist())
+        volume_selected = st.sidebar.multiselect(
+            "Volume (Feet)",
+            options=volume_list
+        )
+        if volume_selected:
+            df = df[df["volume_feet"].isin(volume_selected)]
+    
+    st.divider()
     # ==============
     # Tren SPER
     st.subheader("Tren Nilai Kontribusi SPER per Tahun")
