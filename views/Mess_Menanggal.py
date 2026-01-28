@@ -76,6 +76,56 @@ def show_Mess_Menanggal():
     # ==========================
     # Kolom LANTAI (UNTUK CHART)
     # ==========================
+    st.header("Filter Mess Menanggal")
+    j1,j2,j3,j4 = st.columns(4)
+
+    df_filtered = df.copy()  # dataframe setelah filter
+
+    with j1:
+        tahun_list = sorted(df_filtered["tahun"].dropna().astype(int).unique())
+        tahun = st.multiselect("Tahun SPER", tahun_list)
+        st.session_state["tahun_selected"] = tahun
+        if tahun:
+            df_filtered = df_filtered[df_filtered["tahun"].isin(tahun)]
+
+    with j2:
+        penyewa_list = sorted(df_filtered["penyewa"].dropna().unique())
+        penyewa = st.multiselect("Penyewa", penyewa_list)
+        if penyewa:
+            df_filtered = df_filtered[df_filtered["penyewa"].isin(penyewa)]
+
+    with j3:
+        status_list = sorted(df_filtered["status_aset"].dropna().unique())
+        status_selected = st.multiselect("Status", status_list)
+        if status_selected:
+            df_filtered = df_filtered[df_filtered["status_aset"].isin(status_selected)]
+
+    with j4:
+        # Lantai & Blok
+        if "keterangan" in df_filtered.columns and not df_filtered.empty:
+            df_filtered["keterangan"] = df_filtered["keterangan"].astype(str)
+            lantai_mapping = {
+                "1": [c for c in "A B C D E F G H".split()] + ["AA","BB","CC","DD","EE","FF","GG","HH"],
+                "2": [f"{c}1" for c in "A B C D E F G H".split()] + ["AA1","BB1","CC1","DD1","EE1","FF1","GG1","HH1"],
+                "3": [f"{c}2" for c in "A B C D E F G H".split()] + ["AA2","BB2","CC2","DD2","EE2","FF2","GG2","HH2"],
+                "4": [f"{c}3" for c in "A B C D E F G H".split()] + ["AA3","BB3","CC3","DD3","EE3","FF3","GG3","HH3"]
+            }
+            lantai_list = sorted(lantai_mapping.keys())
+            lantai_selected = st.multiselect("Lantai", lantai_list)
+            if lantai_selected:
+                kamar_filter = []
+                for l in lantai_selected:
+                    kamar_filter.extend(lantai_mapping[l])
+                df_filtered = df_filtered[df_filtered["keterangan"].isin(kamar_filter)]
+
+    def get_lantai(kamar):
+        for lantai, kamar_list in lantai_mapping.items():
+            if kamar in kamar_list:
+                return lantai
+        return "Tidak Diketahui"
+
+    df_filtered["lantai"] = df_filtered["keterangan"].astype(str).apply(get_lantai)
+
     #=====================
     #data_sper nomor_surat
     df_sper_valid = df[
@@ -112,78 +162,7 @@ def show_Mess_Menanggal():
     c4.metric("Rata-rata Nilai per Mess", format_rupiah_singkat(rata_nilai))
     st.caption(f"Nilai sebenarnya: {format_rupiah_full(total_nilai)}")
 
-    st.divider()
-    
-    # =================
-    # sidebar
-    #sidebar
-    st.header("Filter Mess Menanggal")
-    
-    j1,j2,j3,j4 = st.columns(4)
-
-    with j1:
-        #tahun
-        tahun_list = (
-            df["tahun"]
-            .dropna()
-            .astype(int)
-            .unique()
-        )
-        tahun_list = sorted(tahun_list)
-
-        tahun = st.multiselect("Tahun SPER", tahun_list)
-        st.session_state["tahun_selected"] = tahun
-
-        if tahun:
-            df = df[df["tahun"].isin(tahun)]
-    
-    with j2:
-        #penyewa
-        penyewa_list = sorted (df["penyewa"].dropna().unique())
-        penyewa = st.multiselect("penyewa", penyewa_list)
-
-        if penyewa:
-            df = df[df["penyewa"].isin(penyewa)]
-
-    with j3:
-        # Status
-        status_list = sorted(df["status_aset"].dropna().unique())
-        status_selected = st.multiselect("Status", status_list)
-        
-        if status_selected:
-            df = df[df["status_aset"].isin(status_selected)]
-    
-    with j4:
-        # Sidebar Lantai & Blok
-        if "keterangan" in df.columns and not df.empty:
-            df["keterangan"] = df["keterangan"].astype(str)
-
-            # Mapping lantai ke kamar
-            lantai_mapping = {
-                "1": [c for c in "A B C D E F G H".split()] + ["AA","BB","CC","DD","EE","FF","GG","HH"],
-                "2": [f"{c}1" for c in "A B C D E F G H".split()] + ["AA1","BB1","CC1","DD1","EE1","FF1","GG1","HH1"],
-                "3": [f"{c}2" for c in "A B C D E F G H".split()] + ["AA2","BB2","CC2","DD2","EE2","FF2","GG2","HH2"],
-                "4": [f"{c}3" for c in "A B C D E F G H".split()] + ["AA3","BB3","CC3","DD3","EE3","FF3","GG3","HH3"]
-            }
-            # Daftar lantai unik yang ada di data Mess
-            lantai_list = sorted(lantai_mapping.keys())
-            lantai_selected = st.multiselect("Lantai", lantai_list)
-
-            # Filter berdasarkan lantai dan kamar
-            if lantai_selected:
-                kamar_filter = []
-                for l in lantai_selected:
-                    kamar_filter.extend(lantai_mapping[l])
-                df = df[df["keterangan"].isin(kamar_filter)]
-
-    def get_lantai(kamar):
-        for lantai, kamar_list in lantai_mapping.items():
-            if kamar in kamar_list:
-                return lantai
-        return "Tidak Diketahui"
-
-    df["lantai"] = df["keterangan"].astype(str).apply(get_lantai)
-    
+    st.divider()    
     # ==================
     #chart durasi
     st.subheader("Tren Nilai Kontribusi SPER per Tahun")
@@ -284,7 +263,7 @@ def show_Mess_Menanggal():
     # else: 
     #     df_chart = df_sper_valid[df_sper_valid["tahun"].isin(selected_year)].copy()   
     
-    st.subheader("TOP 10 Penyewa SPER Berdasarkan Nilai Kontribusi")
+    st.subheader("Penyewa SPER Berdasarkan Nilai Kontribusi")
     top_penyewa=(
         df_chart
         .groupby("penyewa")["nilai"]
@@ -323,13 +302,21 @@ def show_Mess_Menanggal():
     # ======================
     st.subheader("Distribusi SPER per Lantai Mess Menanggal")
 
-    df["lantai"] = df["keterangan"].astype(str).apply(get_lantai)
+    df_filtered["lantai"] = df_filtered["keterangan"].astype(str).apply(get_lantai)
     
+    df_lantai = df_filtered[
+        (df_filtered["nomor_surat"].notna()) &
+        (df_filtered["nomor_surat"].str.strip() != "") &
+        ((df_filtered["tahun"].isin(selected_year)) if selected_year else (df_filtered["tahun"] == current_year))
+    ]
+
     lantai_dist = (
-        df_chart
-        .groupby("lantai")["nilai"]
-        .sum()
-        .reset_index()
+        df_lantai
+        .groupby("lantai", as_index=False)
+        .agg(
+            total_nilai=("nilai", "sum"),
+            jumlah_sper=("nomor_surat", "nunique")
+        )
         .sort_values("lantai", ascending=False)
     )
     top_penyewa["label_nilai"] = top_penyewa["nilai"].apply(label_nilai_id)
@@ -338,17 +325,19 @@ def show_Mess_Menanggal():
     fig_lantai = px.bar(
         lantai_dist,
         x="lantai",
-        y="nilai",
+        y="total_nilai",
         labels={
             "lantai": "Lantai",
             "nilai": "Nilai Kontribusi (Rp)"
-        }
+        },
+        custom_data=["jumlah_sper"]
     )
     fig_lantai.update_traces(
         texttemplate="Rp %{y:,.0f}",     
         textposition="outside",
         hovertemplate=
-            "<b>Lantai</b>: %{x}<br>" +
+            "<b>Lantai</b>: %{x}<br>"
+            "<b>Jumlah SPER</b>: %{customdata[0]}<br>"
             "<b>Nilai Kontribusi</b>: Rp %{y:,.0f}<extra></extra>"
     )
     fig_lantai.update_xaxes(

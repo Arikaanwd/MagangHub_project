@@ -21,9 +21,9 @@ def load_lokasi_master(json_path="D:/MagangHub/Project/maps/lokasi_maps.json"):
 # =============================
 # RENDER MAP
 # =============================
-def render_map():
+def render_map(df_aset):
     df_lokasi = load_lokasi_master()
-    df_aset = load_aset_data()
+    df_aset = df_aset.copy()
 
     # =============================
     # NORMALISASI

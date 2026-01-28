@@ -9,6 +9,26 @@ def extract_year_from_nomor_surat(nomor):
     match = re.search(r"(20\d{2})", str(nomor))
     return int(match.group(1)) if match else None
 
+def load_master_rumdin():
+    query = """
+    SELECT 
+        kode_rumdin
+    FROM master_rumdin
+    """
+    data, columns = fetch(query)
+    df = pd.DataFrame(data, columns=columns)
+    return df
+
+def load_master_kantor():
+    query = """
+    SELECT
+        kode_kantor,
+        lokasi,
+        status_aset
+    FROM master_kantor
+    """
+    data, columns = fetch(query)
+    return pd.DataFrame(data, columns=columns)
 
 def load_aset_data():
     query = """
@@ -54,7 +74,6 @@ def load_aset_data():
     FROM master_kontainer mt
     JOIN transaksi_kontainer kt ON mt.id_kontainer = kt.id_kontainer
     
-
     UNION ALL
 
     SELECT 
@@ -125,7 +144,6 @@ def load_aset_data():
     data, columns = fetch(query)
     df = pd.DataFrame(data, columns=columns)
 
-    # ================== NORMALISASI ==================
     df["nilai"] = pd.to_numeric(df["nilai"], errors="coerce").fillna(0)
 
     df["durasi_bulan"] = pd.to_numeric(
@@ -135,7 +153,6 @@ def load_aset_data():
     df["tanggal_mulai"] = pd.to_datetime(df["tanggal_mulai"], errors="coerce")
     df["tanggal_selesai"] = pd.to_datetime(df["tanggal_selesai"], errors="coerce")
 
-    # Tahun DIAMBIL DARI NOMOR SURAT (SESUSAI KEBUTUHAN ANDA)
     df["tahun"] = df["nomor_surat"].apply(extract_year_from_nomor_surat)
 
     df["keterangan"] = df["keterangan"].fillna("")

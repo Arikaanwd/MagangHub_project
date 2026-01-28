@@ -2,6 +2,7 @@ import streamlit as st
 import plotly.express as px
 import pandas as pd
 from data_loader import load_aset_data
+from data_loader import load_aset_data, load_master_rumdin
 from datetime import datetime
 import time
 
@@ -57,6 +58,7 @@ def show_Rumdin():
     # =========================
     #load data
     df = load_aset_data()
+    df_master_rumdin = load_master_rumdin()
     # =========================
     #filter aset
     df = df[df["jenis_aset"] == "Rumah Dinas"].copy()
@@ -78,6 +80,43 @@ def show_Rumdin():
     df["status_aset"] = normalize_kosong(df["status_aset"], "Status Tidak Diisi")
     df["keterangan"] = normalize_kosong(df["keterangan"], "Kreditur Tidak Diisi")
 
+    # ===================
+    # APPLY FILTER SIDEBAR
+    st.header("Filter Rumah Dinas")
+    b1,b2,b3,b4 = st.columns(4)
+
+    df_filtered = df.copy()
+
+    with b1:
+        # Filter Tahun
+        tahun_list = sorted(df_filtered["tahun"].dropna().astype(int).unique())
+        tahun = st.multiselect("Tahun SPER", tahun_list)
+        st.session_state["tahun_selected"] = tahun
+        if tahun:
+            df_filtered = df_filtered[df_filtered["tahun"].isin(tahun)]
+
+    with b2:
+        # Filter Penyewa
+        penyewa_list = sorted(df_filtered["penyewa"].dropna().unique())
+        penyewa = st.multiselect("Penyewa", penyewa_list)
+        if penyewa:
+            df_filtered = df_filtered[df_filtered["penyewa"].isin(penyewa)]
+
+    with b3:
+        # Filter Kreditur
+        kreditur_list = sorted(df_filtered["keterangan"].dropna().unique())
+        kreditur = st.multiselect("Kreditur", kreditur_list)
+        if kreditur:
+            df_filtered = df_filtered[df_filtered["keterangan"].isin(kreditur)]
+
+    with b4:
+        # Filter Status
+        status_list = sorted(df_filtered["status_aset"].dropna().unique())
+        status_ = st.multiselect("Status Rumah", status_list)
+        if status_:
+            df_filtered = df_filtered[df_filtered["status_aset"].isin(status_)]
+
+    st.divider()
     # ===================
     #data sper nomor_surat
     df_sper_valid = df[
@@ -103,7 +142,7 @@ def show_Rumdin():
     # ===================
     #KPI
     total_sper = df_chart["nomor_surat"].nunique()
-    total_rumah = df["kode_aset"].dropna().str.strip().nunique()
+    total_rumah = df_master_rumdin["kode_rumdin"].dropna().str.strip().nunique()
     total_nilai = df_chart["nilai"].sum()
 
     c1, c2, c3 = st.columns(3)
@@ -114,52 +153,6 @@ def show_Rumdin():
     st.caption(f"Nilai sebenarnya: {format_rupiah(total_nilai)}")
     st.divider()
 
-    # =================
-    # FILTER
-    #sidebar 
-    st.header("Filter Rumah Dinas")
-
-    b1,b2,b3,b4 = st.columns(4)
-
-    with b1:
-        # Filter Tahun
-        tahun_list = sorted(
-            df["tahun"]
-            .dropna()
-            .astype(int)
-            .unique()
-        )
-        tahun = st.multiselect("Tahun SPER", tahun_list)
-        st.session_state["tahun_selected"] = tahun
-
-        if tahun:
-            df = df[df["tahun"].isin(tahun)]
-    
-    with b2:
-        # Filter Penyewa
-        penyewa_list = sorted(df["penyewa"].dropna().unique())
-        penyewa = st.multiselect("Penyewa", penyewa_list)
-
-        if penyewa:
-            df = df[df["penyewa"].isin(penyewa)]
-    
-    with b3:
-        # Filter Kreditur
-        kreditur_list = sorted(df["keterangan"].dropna().unique())
-        kreditur = st.multiselect("Kreditur", kreditur_list)
-
-        if kreditur:
-            df = df[df["keterangan"].isin(kreditur)]
-    
-    with b4:
-        # Filter Status
-        status_list = sorted(df["status_aset"].dropna().unique())
-        status_ = st.multiselect("Status Rumah", status_list)
-
-        if status_:
-            df = df[df["status_aset"].isin(status_)]
-    
-    st.divider()
     # ==================
     #chart durasi
     st.subheader("Tren Nilai Kontribusi SPER per Tahun")
@@ -195,13 +188,6 @@ def show_Rumdin():
 
     # ==============
     st.subheader("Distribusi Rumah Dinas Berdasarkan Jumlah Data")
-    # Count per Kreditur
-    dist_kreditur = (
-        df_chart
-        .groupby("penyewa")
-        .size()
-        .reset_index(name="jumlah_data")
-    )
     # Count per Penyewa
     #bar chart
     dist_penyewa = (
@@ -256,7 +242,7 @@ def show_Rumdin():
         hovertemplate="<b>Status</b>: %{label}<br><b>Jumlah Rumah</b>: %{value}<extra></extra>"
     )
 
-    fig_pie_status.update_layout(height=420)
+    fig_pie_status.update_layout(height=550)
 
     c7, c8 = st.columns([1.8,1])
     with c7:
@@ -278,7 +264,7 @@ def show_Rumdin():
     # else: 
     #     df_chart = df_sper_valid[df_sper_valid["tahun"].isin(selected_year)].copy()   
     
-    st.subheader("TOP 10 Penyewa SPER Berdasrakan Nilai Kontribusi")
+    st.subheader("Penyewa SPER Berdasrakan Nilai Kontribusi")
     top_penyewa=(
         df_chart
         .groupby("penyewa")["nilai"]

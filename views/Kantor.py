@@ -2,6 +2,7 @@ import streamlit as st
 import plotly.express as px
 import pandas as pd
 from data_loader import load_aset_data
+from data_loader import load_master_kantor
 from datetime import datetime
 import time
 
@@ -59,6 +60,7 @@ def show_Kantor():
     # =========================
     #LOAD DATA
     df = load_aset_data()
+    df_master_kantor = load_master_kantor()
 
     #filter aset
     df = df[df["jenis_aset"] == "Kantor"].copy()
@@ -71,6 +73,32 @@ def show_Kantor():
     df["durasi_bulan"] = pd.to_numeric(df["durasi_bulan"], errors="coerce").fillna(0)
 
     # ==================
+    # FILTER SIDEBAR
+    st.header("Filter Kantor")
+    a1, a2, a3 = st.columns(3)
+
+    df_filtered = df.copy()  # gunakan df_filtered sebagai df yang difilter
+
+    with a1:
+        tahun_list = sorted(df_filtered["tahun"].dropna().astype(int).unique())
+        tahun = st.multiselect("Tahun SPER", tahun_list)
+        st.session_state["tahun_selected"] = tahun
+        if tahun:
+            df_filtered = df_filtered[df_filtered["tahun"].isin(tahun)]
+
+    with a2:
+        penyewa_list = sorted(df_filtered["penyewa"].dropna().unique())
+        penyewa = st.multiselect("Penyewa", penyewa_list)
+        if penyewa:
+            df_filtered = df_filtered[df_filtered["penyewa"].isin(penyewa)]
+
+    with a3:
+        status_list = sorted(df_filtered["status_aset"].dropna().unique())
+        status_ = st.multiselect("Status Kantor", status_list)
+        if status_:
+            df_filtered = df_filtered[df_filtered["status_aset"].isin(status_)]
+
+    st.divider()
     # ===================
     #data sper nomor_surat pages kantor
     df_sper_valid = df[
@@ -94,14 +122,15 @@ def show_Kantor():
         st.stop()
 
     #KPI UTAMA
-    df_internal_pal = df[
-        df["status_aset"]
+    df_internal_pal = df_master_kantor[
+        df_master_kantor["status_aset"]
         .str.contains("Internal", case=False, na=False)
     ]
+
     total_sper = df_summary["nomor_surat"].nunique()
     total_nilai = df_summary["nilai"].sum()
     total_luas = df_summary["luas_m2"].median()
-    total_sper_internal = len(df_internal_pal)
+    total_sper_internal = df_internal_pal["kode_kantor"].nunique()
 
     c1, c2, c3, c4= st.columns(4)
     c1.metric("Total SPER", total_sper)
@@ -113,42 +142,6 @@ def show_Kantor():
     c3.metric("Rata - Rata Luas m2", total_luas)
     c4.metric("Total Nilai Kontribusi (Rp)", format_rupiah_singkat(total_nilai))
     st.caption(f"Nilai sebenarnya: {format_rupiah(total_nilai)}")
-    st.divider()
-
-    # filter
-    # Filter Tahun
-    st.header("Filter Kantor")
-
-    a1, a2, a3= st.columns(3)
-
-    with a1:
-        tahun_list = sorted(
-            df["tahun"]
-            .dropna()
-            .astype(int)
-            .unique()
-        )
-        tahun = st.multiselect("Tahun SPER", tahun_list)
-        st.session_state["tahun_selected"] = tahun
-        if tahun:
-            df = df[df["tahun"].isin(tahun)]
-    
-    with a2:
-        # Filter Penyewa
-        penyewa_list = sorted(df["penyewa"].dropna().unique())
-        penyewa = st.multiselect("Penyewa", penyewa_list)
-
-        if penyewa:
-            df = df[df["penyewa"].isin(penyewa)]
-
-    with a3:
-        # Filter Status
-        status_list = sorted(df["status_aset"].dropna().unique())
-        status_ = st.multiselect("Status Kantor", status_list)
-
-        if status_:
-            df = df[df["status_aset"].isin(status_)]
-    
     st.divider()
     # ==============
     # ==============
@@ -212,7 +205,7 @@ def show_Kantor():
         tickmode="linear",
         tickformat="d"
     )
-    fig_year.update_layout(height=550)
+    fig_year.update_layout(height=500)
 
     # pie chart jumlah
     status_dist = (
@@ -233,6 +226,7 @@ def show_Kantor():
         hovertemplate=
             "Status Aset: %{label} <br> Jumlah SPER: %{value}<extra></extra>"
     )
+    fig_status.update_layout(height=500)
 
     col1, col2= st.columns(2)
     with col1:
@@ -287,7 +281,7 @@ def show_Kantor():
     
     # ==============================
     # Top 10 Penyewa
-    st.subheader("TOP 10 Penyewa SPER Berdasarkan Nilai Kontribusi")
+    st.subheader("Penyewa SPER Berdasarkan Nilai Kontribusi")
     top_penyewa = (
         df_summary
         .groupby("penyewa")["nilai"]

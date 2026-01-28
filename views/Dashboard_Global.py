@@ -225,7 +225,7 @@ def show_Dashboard_Global():
     c8.metric("SPER Mess Menanggal", int(sper_per_aset.get("Mess", 0)))
     st.divider()
 
-    render_map()
+    render_map(df_chart)
 
     # =============================
     # LINE CHART – TREN NILAI KONTRIBUSI (SEMUA TAHUN)

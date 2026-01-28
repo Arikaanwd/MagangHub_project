@@ -8,9 +8,7 @@ import time
 #configurasi
 def show_Kontainer():
     st.title("📦 Dashboard SPER Kontainer")
-# st.title("📦 Dashboard SPER Kontainer")
-# st.set_page_config(layout="wide")
-
+    
     # Realtime Tanggal & Waktu
     # ======================
     time_placeholder = st.empty()
@@ -72,10 +70,42 @@ def show_Kontainer():
     df["penyewa_norm"] = (
         df["penyewa"]
         .astype(str)
-        .str.replace(r"\s+", " ", regex=True)  # hapus \r\n & spasi ganda
+        .str.replace(r"\s+", " ", regex=True)
         .str.strip()
     )
 
+    # FILTER SIDEBAR
+    st.header("Filter Kontainer")
+    g1, g2, g3, g4 = st.columns(4)
+
+    df_filtered = df.copy()
+
+    with g1:
+        tahun_list = sorted(df_filtered["tahun"].dropna().astype(int).unique())
+        tahun = st.multiselect("Tahun SPER", tahun_list)
+        st.session_state["tahun_selected"] = tahun
+        if tahun:
+            df_filtered = df_filtered[df_filtered["tahun"].isin(tahun)]
+
+    with g2:
+        penyewa_list = sorted(df_filtered["penyewa_norm"].dropna().unique())
+        penyewa = st.multiselect("Penyewa", penyewa_list)
+        if penyewa:
+            df_filtered = df_filtered[df_filtered["penyewa_norm"].isin(penyewa)]
+
+    with g3:
+        unit_milik_list = sorted(df_filtered["keterangan"].unique().tolist())
+        unit_milik_selected = st.multiselect("Unit Milik", options=unit_milik_list)
+        if unit_milik_selected:
+            df_filtered = df_filtered[df_filtered["keterangan"].isin(unit_milik_selected)]
+
+    with g4:
+        volume_list = sorted(df_filtered["volume_feet"].dropna().unique().tolist())
+        volume_selected = st.multiselect("Volume (Feet)", options=volume_list)
+        if volume_selected:
+            df_filtered = df_filtered[df_filtered["volume_feet"].isin(volume_selected)]
+
+    st.divider()
     #==========================
     #sidebar
     #==================
@@ -108,17 +138,20 @@ def show_Kontainer():
     total_kontainer = len(df_chart)
     total_nilai = df_chart["nilai"].sum()
 
-    rata_volume_feet = (
+    df_chart["volume_feet_median"] = (
         df_chart["volume_feet"]
+        .dropna()
         .replace(0, pd.NA)
-        .median()
     )
 
-    rata_luas_m2 = (
+    df_chart["luas_m2_median"] = (
         df_chart["luas_m2"]
+        .dropna()
         .replace(0, pd.NA)
-        .median()
     )
+
+    rata_volume_feet = df_chart["volume_feet_median"].mode().iloc[0]
+    rata_luas_m2 = df_chart["luas_m2_median"].mode().iloc[0]
 
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Total SPER", int(total_kontainer))
@@ -129,54 +162,6 @@ def show_Kontainer():
     st.caption(f"Nilai sebenarnya: {format_rupiah(total_nilai)}")
     st.divider()
 
-    # ==============
-    # sidebar
-    st.header("Filter Kontainer")
-    
-    g1,g2,g3,g4 = st.columns(4)
-    
-    with g1:
-        #filter tahun
-        tahun_list = sorted(
-            df["tahun"]
-            .dropna()
-            .astype(int)
-            .unique()
-        )
-        tahun = st.multiselect("Tahun SPER", tahun_list)
-        st.session_state["tahun_selected"] = tahun
-        
-        if tahun:
-            df = df[df["tahun"].isin(tahun)]
-    
-    with g2:
-        #filter penyewa
-        penyewa_list = sorted(df["penyewa_norm"].dropna().unique())
-        penyewa = st.multiselect("penyewa", penyewa_list)
-
-        if penyewa:
-            df = df[df["penyewa_norm"].isin(penyewa)]
-
-    with g3:
-        # Filter Unit Milik
-        unit_milik_list = sorted(df["keterangan"].unique().tolist())
-        unit_milik_selected = st.sidebar.multiselect(
-            "Unit Milik",
-            options=unit_milik_list
-        )
-        if unit_milik_selected:
-            df = df[df["keterangan"].isin(unit_milik_selected)]
-    with g4:
-        # Filter Volume (Feet)
-        volume_list = sorted(df["volume_feet"].unique().tolist())
-        volume_selected = st.sidebar.multiselect(
-            "Volume (Feet)",
-            options=volume_list
-        )
-        if volume_selected:
-            df = df[df["volume_feet"].isin(volume_selected)]
-    
-    st.divider()
     # ==============
     # Tren SPER
     st.subheader("Tren Nilai Kontribusi SPER per Tahun")
@@ -216,27 +201,44 @@ def show_Kontainer():
     
     c5, c6 = st.columns(2)
     lokasi_kontainer = (
-        df_chart
-        .groupby("lokasi")["nomor_surat"]
-        .size()
-        .reset_index(name="jumlah_sper")
+        df_chart 
+        .groupby("lokasi", as_index=False)
+        .agg(
+            jumlah_sper=("nomor_surat", "count"),
+            total_nilai=("nilai", "sum")
+        )
     )
+
+    lokasi_kontainer["label_nilai"] = lokasi_kontainer["total_nilai"].apply(label_nilai_id)
+    lokasi_kontainer["tooltip_nilai"] = lokasi_kontainer["total_nilai"].apply(format_rupiah_full)
+
     fig_bar = px.bar(
         lokasi_kontainer,
         x="lokasi",
         y="jumlah_sper",
         color="lokasi",
         text="jumlah_sper",
+        hover_data={
+            "tooltip_nilai": True,
+            "lokasi": False,
+            "jumlah_sper": False
+        },
         labels={
             "lokasi": "Lokasi",
-            "jumlah_sper": "Jumlah SPER"
+            "jumlah_sper": "Jumlah SPER",
+            "tooltip_nilai": "Total Nilai"
         },
         title="Distribusi SPER Berdasarkan Lokasi"
     )
+
     fig_bar.update_traces(
         textposition="outside",
-        hovertemplate="Lokasi: %{x}<br>Jumlah SPER: %{y}<extra></extra>"
+        hovertemplate=
+            "<b>Lokasi</b>: %{x}<br>" +
+            "<b>Jumlah SPER</b>: %{y}<br>" +
+            "<b>Total Nilai</b>: %{customdata[0]}<extra></extra>"
     )
+
     fig_bar.update_layout(height=550)
 
     # pie chart
@@ -257,7 +259,7 @@ def show_Kontainer():
         textinfo="percent+label",
         hovertemplate="Unit Milik: %{label}<br>Jumlah Data: %{value}<extra></extra>"
     )
-    fig_pie.update_layout(height=480)
+    fig_pie.update_layout(height=550)
 
     c5.plotly_chart(fig_bar, width="stretch")
     c6.plotly_chart(fig_pie, width="stretch")
@@ -336,11 +338,17 @@ def show_Kontainer():
     volume_dist = (
         df_chart
         .dropna(subset=["volume_feet"])
-        .groupby("volume_feet")
-        .size()
-        .reset_index(name="jumlah_sper")
+        .groupby("volume_feet", as_index=False)
+        .agg(
+            jumlah_sper=("nomor_surat", "count"),
+            total_nilai=("nilai", "sum")
+        )
         .sort_values("volume_feet")
     )
+    volume_dist["label_nilai"] = volume_dist["total_nilai"].apply(label_nilai_id)
+    volume_dist["tooltip_nilai"] = volume_dist["total_nilai"].apply(format_rupiah_full)
+
+    
     fig_volume_bar = px.bar(
         volume_dist,
         x="volume_feet",
@@ -356,8 +364,10 @@ def show_Kontainer():
         text=volume_dist["jumlah_sper"],
         textposition="outside",
         hovertemplate=
-            "Volume: %{x} feet<br>" +
-            "Jumlah SPER: %{y}<extra></extra>"
+            "<b>Volume</b>: %{x} feet<br>" +
+            "<b>Jumlah SPER</b>: %{y}<br>" +
+            "<b>Total Nilai</b>: %{customdata}<extra></extra>",
+        customdata=volume_dist["tooltip_nilai"]
     )
     fig_volume_bar.update_layout(
         height=480,
@@ -383,7 +393,7 @@ def show_Kontainer():
     #     df_chart = df_sper_valid[df_sper_valid["tahun"].isin(selected_year)].copy()   
     
     # Top 10 Penyewa
-    st.subheader("TOP 10 Penyewa SPER Berdasarkan Nilai Kontribusi")
+    st.subheader("Penyewa SPER Berdasarkan Nilai Kontribusi")
     top_penyewa = (
         df_chart
         .groupby("penyewa")["nilai"]
