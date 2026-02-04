@@ -1,7 +1,7 @@
 import streamlit as st
 import plotly.express as px
 import pandas as pd
-from data_loader import load_aset_data
+from data_loader import load_aset_data , load_master_kontainer
 from datetime import datetime
 import time
 
@@ -9,7 +9,6 @@ import time
 def show_Kontainer():
     st.title("📦 Dashboard SPER Kontainer")
     
-    # Realtime Tanggal & Waktu
     # ======================
     time_placeholder = st.empty()
     now = datetime.now()
@@ -23,8 +22,7 @@ def show_Kontainer():
         unsafe_allow_html=True
     )
     time.sleep(1)
-
-    #definisi nilai rupiah
+    
     def format_rupiah(n):
         return f"Rp {n:,.0f}".replace(",", ".")
     def format_rupiah_full(n):
@@ -54,15 +52,11 @@ def show_Kontainer():
             return val
 
     # =========================
-    #load data
     df = load_aset_data()
-
-    #==========================
-    #filter aset
+    df_master_kontainer = load_master_kontainer()
     df = df[df["jenis_aset"] == "Kontainer"].copy()
 
     #==================
-    #normalisasi
     df["nilai"] = pd.to_numeric(df["nilai"], errors="coerce").fillna(0)
     df["durasi_bulan"] = pd.to_numeric(df["durasi_bulan"], errors="coerce").fillna(0)
     df["volume_feet"] = pd.to_numeric(df["volume_feet"], errors="coerce")
@@ -74,42 +68,40 @@ def show_Kontainer():
         .str.strip()
     )
 
-    # FILTER SIDEBAR
+    # ==================
     st.header("Filter Kontainer")
     g1, g2, g3, g4 = st.columns(4)
-
-    df_filtered = df.copy()
+    df_base = df.copy()
 
     with g1:
-        tahun_list = sorted(df_filtered["tahun"].dropna().astype(int).unique())
+        tahun_list = sorted(df["tahun"].dropna().astype(int).unique())
         tahun = st.multiselect("Tahun SPER", tahun_list)
-        st.session_state["tahun_selected"] = tahun
         if tahun:
-            df_filtered = df_filtered[df_filtered["tahun"].isin(tahun)]
+            df_base = df_base[df_base["tahun"].isin(tahun)]
 
     with g2:
-        penyewa_list = sorted(df_filtered["penyewa_norm"].dropna().unique())
+        penyewa_list = sorted(df_base["penyewa_norm"].dropna().unique())
         penyewa = st.multiselect("Penyewa", penyewa_list)
         if penyewa:
-            df_filtered = df_filtered[df_filtered["penyewa_norm"].isin(penyewa)]
+            df_base = df_base[df_base["penyewa_norm"].isin(penyewa)]
 
     with g3:
-        unit_milik_list = sorted(df_filtered["keterangan"].unique().tolist())
-        unit_milik_selected = st.multiselect("Unit Milik", options=unit_milik_list)
+        unit_milik_list = sorted(df_base["keterangan"].dropna().unique())
+        unit_milik_selected = st.multiselect("Unit Milik", unit_milik_list)
+
         if unit_milik_selected:
-            df_filtered = df_filtered[df_filtered["keterangan"].isin(unit_milik_selected)]
+            df_base = df_base[df_base["keterangan"].isin(unit_milik_selected)]
 
     with g4:
-        volume_list = sorted(df_filtered["volume_feet"].dropna().unique().tolist())
-        volume_selected = st.multiselect("Volume (Feet)", options=volume_list)
-        if volume_selected:
-            df_filtered = df_filtered[df_filtered["volume_feet"].isin(volume_selected)]
+        volume_list = sorted(df_base["volume_feet"].dropna().unique())
+        volume_selected = st.multiselect("Volume (Feet)", volume_list)
 
-    st.divider()
-    #==========================
-    #sidebar
+        if volume_selected:
+            df_base = df_base[df_base["volume_feet"].isin(volume_selected)]
+
+    df_filtered = df_base.copy()
+
     #==================
-    #nomor_surat
     df_sper_valid = df[
         df["nomor_surat"].notna() &
         (df["nomor_surat"].str.strip() != " ") &
@@ -120,38 +112,27 @@ def show_Kontainer():
     ].copy()
 
     # =================
-    # inisialisasi tahun saat ini
     current_year = datetime.now().year
-    selected_year = st.session_state.get("tahun_selected")
+    tahun_dashboard = tahun[0] if tahun else current_year
 
-    if selected_year and len(selected_year) > 0:
-        df_chart = df_sper_valid[df_sper_valid["tahun"].isin(selected_year)].copy()
-    else:
-        # default: tahun saat ini
-        df_chart = df_sper_valid[df_sper_valid["tahun"] == current_year].copy()
-
-    if df_chart.empty:
-        st.warning("Tidak ada data SPER Kontainer untuk tahun yang dipilih")
-        st.stop()
+    df_filtered = df_filtered[df_filtered["tahun"] == tahun_dashboard]
+    
     #==================
-    #KPI
-    total_kontainer = len(df_chart)
-    total_nilai = df_chart["nilai"].sum()
+    total_kontainer = len(df_filtered)
+    total_nilai = df_filtered["nilai"].sum()
 
-    df_chart["volume_feet_median"] = (
-        df_chart["volume_feet"]
+    df_filtered["volume_feet_median"] = (
+        df_filtered["volume_feet"]
         .dropna()
         .replace(0, pd.NA)
     )
-
-    df_chart["luas_m2_median"] = (
-        df_chart["luas_m2"]
+    df_filtered["luas_m2_median"] = (
+        df_filtered["luas_m2"]
         .dropna()
         .replace(0, pd.NA)
     )
-
-    rata_volume_feet = df_chart["volume_feet_median"].mode().iloc[0]
-    rata_luas_m2 = df_chart["luas_m2_median"].mode().iloc[0]
+    rata_volume_feet = df_filtered["volume_feet_median"].mode().iloc[0]
+    rata_luas_m2 = df_filtered["luas_m2_median"].mode().iloc[0]
 
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Total SPER", int(total_kontainer))
@@ -163,7 +144,6 @@ def show_Kontainer():
     st.divider()
 
     # ==============
-    # Tren SPER
     st.subheader("Tren Nilai Kontribusi SPER per Tahun")
     trend =(
         df_sper_valid
@@ -196,12 +176,11 @@ def show_Kontainer():
     st.divider()
 
     #=================
-    #Distribusi Bar chart dan pie chart
     st.subheader("Distribusi SPER Kontainer Berdasarkan Lokasi dan Unit Milik")
     
     c5, c6 = st.columns(2)
     lokasi_kontainer = (
-        df_chart 
+        df_filtered 
         .groupby("lokasi", as_index=False)
         .agg(
             jumlah_sper=("nomor_surat", "count"),
@@ -215,128 +194,33 @@ def show_Kontainer():
     fig_bar = px.bar(
         lokasi_kontainer,
         x="lokasi",
-        y="jumlah_sper",
+        y="total_nilai",
         color="lokasi",
-        text="jumlah_sper",
-        hover_data={
-            "tooltip_nilai": True,
-            "lokasi": False,
-            "jumlah_sper": False
-        },
         labels={
             "lokasi": "Lokasi",
-            "jumlah_sper": "Jumlah SPER",
-            "tooltip_nilai": "Total Nilai"
+            "total_nilai": "Nilai Kontribusi (Rp)"
         },
+        custom_data=["jumlah_sper"],
         title="Distribusi SPER Berdasarkan Lokasi"
     )
-
     fig_bar.update_traces(
+        texttemplate="Rp %{y:,.0f}",
         textposition="outside",
         hovertemplate=
             "<b>Lokasi</b>: %{x}<br>" +
-            "<b>Jumlah SPER</b>: %{y}<br>" +
-            "<b>Total Nilai</b>: %{customdata[0]}<extra></extra>"
+            "<b>Jumlah SPER</b>: %{customdata[0]}<br>" +
+            "<b>Total Nilai</b>: Rp %{y:,.0f}<extra></extra>"
     )
-
-    fig_bar.update_layout(height=550)
-
-    # pie chart
-    unit_count = (
-        df_chart
-        .groupby("keterangan")
-        .size()
-        .reset_index(name="jumlah_sper")
+    fig_bar.update_xaxes(
+        tickmode="linear",
+        tickformat="d"
     )
-    fig_pie = px.pie(
-        unit_count,
-        names="keterangan",
-        values="jumlah_sper",
-        hole=0.4,
-        title="Proporsi SPER Berdasarkan Unit Milik"
-    )
-    fig_pie.update_traces(
-        textinfo="percent+label",
-        hovertemplate="Unit Milik: %{label}<br>Jumlah Data: %{value}<extra></extra>"
-    )
-    fig_pie.update_layout(height=550)
+    fig_bar.update_yaxes(tickformat=",")
+    fig_bar.update_layout(height=500)
 
-    c5.plotly_chart(fig_bar, width="stretch")
-    c6.plotly_chart(fig_pie, width="stretch")
-
-    st.divider()
-
-    # Kondisi Aset
-    st.subheader("Kondisi Aset Kontainer")
-
-    kondisi_aset = (
-        df_chart
-        .groupby("status_aset")
-        .size()
-        .reset_index(name="jumlah_aset")
-        .sort_values("jumlah_aset", ascending=False)
-    )
-    fig_kondisi_pie = px.pie(
-        kondisi_aset,
-        names="status_aset",
-        values="jumlah_aset",
-        color="status_aset",
-        hole=0.4,
-        title="Proporsi Kondisi Aset Kontainer"
-    )
-
-    fig_kondisi_pie.update_traces(
-        textinfo="percent+label",
-        hovertemplate=
-            "Kondisi: %{label}<br>" +
-            "Jumlah Aset: %{value}<extra></extra>"
-    )
-
-    fig_kondisi_pie.update_layout(height=450)
-
-    kondisi_nilai = (
-        df_chart
-        .groupby("status_aset", as_index=False)
-        .agg(total_nilai=("nilai", "sum"))
-        .sort_values("total_nilai", ascending=False)
-    )
-
-    kondisi_nilai["label_nilai"] = kondisi_nilai["total_nilai"].apply(label_nilai_id)
-    kondisi_nilai["tooltip_nilai"] = kondisi_nilai["total_nilai"].apply(format_rupiah_full)
-        
-    fig_kondisi_nilai = px.bar(
-        kondisi_nilai,
-        x="status_aset",
-        y="total_nilai",
-        color="status_aset",
-        text="label_nilai",
-        labels={
-            "status_aset": "Kondisi Aset",
-            "total_nilai": "Total Nilai Kontribusi (Rp)"
-        },
-        title="Nilai Kontribusi SPER Berdasarkan Kondisi Aset"
-    )
-
-    fig_kondisi_nilai.update_traces(
-        textposition="outside",
-        hovertemplate=
-            "<b>Kondisi</b>: %{x}<br>" +
-            "<b>Total Nilai</b>: %{customdata}<extra></extra>",
-        customdata=kondisi_nilai["tooltip_nilai"]
-    )
-
-    fig_kondisi_nilai.update_yaxes(tickformat=",")
-    fig_kondisi_nilai.update_layout(height=500)
-
-    c7, c8 = st.columns(2)
-    c7.plotly_chart(fig_kondisi_pie, width="stretch")
-    c8.plotly_chart(fig_kondisi_nilai, width="stretch")
-
-    st.divider()
     # ====================
-    # volume
     volume_dist = (
-        df_chart
+        df_filtered
         .dropna(subset=["volume_feet"])
         .groupby("volume_feet", as_index=False)
         .agg(
@@ -345,57 +229,86 @@ def show_Kontainer():
         )
         .sort_values("volume_feet")
     )
+
     volume_dist["label_nilai"] = volume_dist["total_nilai"].apply(label_nilai_id)
     volume_dist["tooltip_nilai"] = volume_dist["total_nilai"].apply(format_rupiah_full)
 
-    
     fig_volume_bar = px.bar(
         volume_dist,
         x="volume_feet",
-        y="jumlah_sper",
+        y="total_nilai",
         color="volume_feet",
         labels={
             "volume_feet": "Volume Kontainer (Feet)",
-            "jumlah_sper": "Jumlah SPER"
+            "total_nilai": "Nilai Kontribusi (Rp)"
         },
+        custom_data=["jumlah_sper"],
         title="Distribusi SPER Kontainer Berdasarkan Volume (Feet)"
     )
     fig_volume_bar.update_traces(
-        text=volume_dist["jumlah_sper"],
+        texttemplate="Rp %{y:,.0f}",  
         textposition="outside",
         hovertemplate=
             "<b>Volume</b>: %{x} feet<br>" +
-            "<b>Jumlah SPER</b>: %{y}<br>" +
-            "<b>Total Nilai</b>: %{customdata}<extra></extra>",
-        customdata=volume_dist["tooltip_nilai"]
+            "<b>Jumlah SPER</b>: %{customdata[0]}<br>" +
+            "<b>Total Nilai</b>: Rp %{y:,.0f}<extra></extra>"
     )
+    fig_volume_bar.update_xaxes(
+        tickmode="linear",
+        tickformat="d"
+    )
+    fig_volume_bar.update_yaxes(tickformat=",")
     fig_volume_bar.update_layout(
-        height=480,
+        height=500,
         xaxis=dict(type="category")
     )
+    c5.plotly_chart(fig_bar, width="stretch")
+    c6.plotly_chart(fig_volume_bar, width="stretch")
 
-    st.plotly_chart(fig_volume_bar, width="stretch")
     st.divider()
 
-    # ================================
-    # #penyewa
-    # current_year = datetime.now().year
+    # =====================
+    # kondisi_nilai = (
+    #     df_filtered
+    #     .groupby("status_aset", as_index=False)
+    #     .agg(total_nilai=("nilai", "sum"))
+    #     .sort_values("total_nilai", ascending=False)
+    # )
 
-    # # Jika user tidak memilih filter tahun di sidebar
-    # if "tahun" in df.columns:
-    #     selected_year = st.session_state.get("tahun_selected")
-    # else:
-    #     selected_year=None   
-    
-    # if not selected_year:
-    #     df_chart = df_sper_valid[df_sper_valid["tahun"] == current_year].copy()
-    # else: 
-    #     df_chart = df_sper_valid[df_sper_valid["tahun"].isin(selected_year)].copy()   
-    
-    # Top 10 Penyewa
+    # kondisi_nilai["label_nilai"] = kondisi_nilai["total_nilai"].apply(label_nilai_id)
+    # kondisi_nilai["tooltip_nilai"] = kondisi_nilai["total_nilai"].apply(format_rupiah_full)
+        
+    # fig_kondisi_nilai = px.bar(
+    #     kondisi_nilai,
+    #     x="status_aset",
+    #     y="total_nilai",
+    #     color="status_aset",
+    #     text="label_nilai",
+    #     labels={
+    #         "status_aset": "Kondisi Aset",
+    #         "total_nilai": "Total Nilai Kontribusi (Rp)"
+    #     },
+    #     title="Nilai Kontribusi SPER Berdasarkan Kondisi Aset"
+    # )
+
+    # fig_kondisi_nilai.update_traces(
+    #     textposition="outside",
+    #     hovertemplate=
+    #         "<b>Kondisi</b>: %{x}<br>" +
+    #         "<b>Total Nilai</b>: %{customdata}<extra></extra>",
+    #     customdata=kondisi_nilai["tooltip_nilai"]
+    # )
+
+    # fig_kondisi_nilai.update_yaxes(tickformat=",")
+    # fig_kondisi_nilai.update_layout(height=500)
+    # st.plotly_chart(fig_kondisi_nilai, width="stretch")
+
+    # st.divider()
+
+    # ========================
     st.subheader("Penyewa SPER Berdasarkan Nilai Kontribusi")
     top_penyewa = (
-        df_chart
+        df_filtered
         .groupby("penyewa")["nilai"]
         .sum()
         .reset_index()
@@ -427,24 +340,99 @@ def show_Kontainer():
     )
     fig_penyewa.update_layout(height=480)
     st.plotly_chart(fig_penyewa, width="stretch")
+    st.divider()
 
+    # ================================
+    st.subheader("Proporsi Kontainer Berdasarkan Unit Milik dan Kondisi Aset")
+    c7, c8 = st.columns(2)
+    unit_count = (
+        df_filtered
+        .groupby("keterangan")
+        .size()
+        .reset_index(name="jumlah_sper")
+    )
+    fig_pie = px.pie(
+        unit_count,
+        names="keterangan",
+        values="jumlah_sper",
+        hole=0.4,
+        title="Proporsi SPER Berdasarkan Unit Milik"
+    )
+    fig_pie.update_traces(
+        textinfo="percent+label",
+        hovertemplate="Unit Milik: %{label}<br>Jumlah Data: %{value}<extra></extra>"
+    )
+    fig_pie.update_layout(height=500)
+
+    # ====================
+    df_status_kontainer = df_master_kontainer.copy()
+    df_status_kontainer["status_aset"] = (
+        df_status_kontainer["status_aset"]
+        .astype(str)
+        .str.strip()
+        .replace("", "Kosong")
+    )
+    start_year = pd.Timestamp(f"{tahun_dashboard}-01-01")
+    end_year   = pd.Timestamp(f"{tahun_dashboard}-12-31")
+
+    df_sewa_tahun = df_filtered[
+        (df_filtered["tanggal_mulai"] <= end_year) &
+        (df_filtered["tanggal_selesai"] >= start_year)
+    ].copy()
+
+    kontainer_disewa = df_sewa_tahun["kode_aset"].unique()
+
+    df_status_kontainer["status_tahun"] = df_status_kontainer["kode_kontainer"].apply(
+        lambda x: "Disewa" if x in kontainer_disewa
+        else df_status_kontainer.loc[
+            df_status_kontainer["kode_kontainer"] == x, "status_aset"
+        ].values[0]
+    )
+    
+    df_status_kontainer["status_tahun"] = df_status_kontainer["kode_kontainer"].apply(
+        lambda x: "Disewa" if x in kontainer_disewa
+        else df_status_kontainer.loc[df_status_kontainer["kode_kontainer"] == x, "status_aset"].values[0]
+    )
+
+    kondisi_aset = (
+        df_status_kontainer
+        .groupby("status_tahun")
+        .size()
+        .reset_index(name="jumlah_aset")
+    )
+    fig_kondisi_pie = px.pie(
+        kondisi_aset,
+        names="status_tahun",
+        values="jumlah_aset",
+        hole=0.4,
+        title=f"Proporsi Kondisi Aset Kontainer Tahun {tahun_dashboard}"
+    )
+    fig_kondisi_pie.update_traces(
+        textinfo="percent+label",
+        hovertemplate=
+            "Kondisi: %{label}<br>" +
+            "Jumlah Aset: %{value}<extra></extra>"
+    )
+    fig_kondisi_pie.update_layout(height=500)
+
+    c7.plotly_chart(fig_pie, width="stretch")
+    c8.plotly_chart(fig_kondisi_pie, width="stretch")
+    
     #======================
-    #DETAIL TABLE
-    df = (
-        df
+    df_filtered = (
+        df_filtered
         .sort_values("kode_aset", ascending=True)
         .reset_index(drop=True)
     )
-
-    df["nilai_rupiah"] = df["nilai"].apply(format_rupiah)
+    df_filtered["nilai_rupiah"] = df_filtered["nilai"].apply(format_rupiah)
 
     st.subheader("📋 Detail SPER Kontainer")
-    df["tanggal_mulai_tgl"] = df["tanggal_mulai"].apply(format_tanggal_indo)
-    df["tanggal_selesai_tgl"] = df["tanggal_selesai"].apply(format_tanggal_indo)
-    df.index = df.index + 1
+    df_filtered["tanggal_mulai_tgl"] = df_filtered["tanggal_mulai"].apply(format_tanggal_indo)
+    df_filtered["tanggal_selesai_tgl"] = df_filtered["tanggal_selesai"].apply(format_tanggal_indo)
+    df_filtered.index = df_filtered.index + 1
 
     st.dataframe(
-        df[[
+        df_filtered[[
             "nomor_surat",
             "kode_aset",
             "lokasi",

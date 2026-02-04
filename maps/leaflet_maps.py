@@ -5,9 +5,7 @@ from streamlit_folium import st_folium
 from data_loader import load_aset_data
 
 
-# =============================
-# LOAD MASTER LOKASI
-# =============================
+
 def load_lokasi_master(json_path="D:/MagangHub/Project/maps/lokasi_maps.json"):
     with open(json_path, "r") as f:
         data = json.load(f)
@@ -18,26 +16,66 @@ def load_lokasi_master(json_path="D:/MagangHub/Project/maps/lokasi_maps.json"):
     df["nama_lokasi"] = df["nama_lokasi"].str.strip()
     return df
 
-# =============================
 # RENDER MAP
-# =============================
 def render_map(df_aset):
     df_lokasi = load_lokasi_master()
     df_aset = df_aset.copy()
 
-    # =============================
-    # NORMALISASI
-    # =============================
-    df_aset["lokasi"] = df_aset["lokasi"].astype(str).str.strip()
+    def normalize_nama_lokasi(text):
+        if pd.isna(text):
+            return None
+
+        t = str(text).strip().lower()
+
+        mapping = {
+            # KPM
+            "gedung kpm": "kpm",
+
+            # EX KAMTIB
+            "gedung ex-kam k3lh": "ex_kamtib",
+            "gedung ex kam k3lh": "ex_kamtib",
+            "gedung ex-kamtib": "ex_kamtib",
+
+            # PIP
+            "gedung pip lt dasar": "pip",
+            "gedung pip": "pip",
+
+            # DESAIN
+            "ex. gedung div. desain": "desain",
+            "ex gedung div desain": "desain",
+            "div. desain": "desain",
+
+            # KESIND
+            "gedung kesind": "kesind",
+
+            # MATERIAL
+            "ex-gedung penerimaan material": "material",
+            "gedung penerimaan material": "material",
+
+            # NIAGA
+            "div. kapal niaga": "niaga",
+
+            # BELUGA
+            "dok. beluga": "dok_beluga",
+
+            # KOP KB / KOPERASI
+            "gedung kop kb": "kop_kb",
+            "gedung kop-kb": "kop_kb",
+            "kop kb": "kop_kb",
+            "gedung koperasi": "kop_kb",
+            "gedung koperasi kb": "kop_kb",
+        }
+
+        return mapping.get(t, None)
+
+
+    df_aset["kode_lokasi"] = df_aset["lokasi"].apply(normalize_nama_lokasi)
     df_aset["status_aset"] = df_aset["status_aset"].astype(str).str.strip()
     df_aset["jenis_aset"] = df_aset["jenis_aset"].astype(str).str.strip()
 
-    # =============================
-    # RINGKAS JENIS ASET PER LOKASI
-    # =============================
     jenis_aset_summary = (
         df_aset
-        .groupby(["lokasi", "jenis_aset"])
+        .groupby(["kode_lokasi", "jenis_aset"])
         .size()
         .reset_index(name="jumlah")
     )
@@ -49,18 +87,15 @@ def render_map(df_aset):
 
     jenis_aset_grouped = (
         jenis_aset_summary
-        .groupby("lokasi")["jenis_text"]
+        .groupby("kode_lokasi")["jenis_text"]
         .apply(lambda x: "<br>".join(x))
         .reset_index()
-        .rename(columns={"lokasi": "nama_lokasi"})
+        .rename(columns={"kode_lokasi": "kode_lokasi"})
     )
 
-    # =============================
-    # AGREGASI STATUS
-    # =============================
     status_summary = (
         df_aset
-        .groupby("lokasi")
+        .groupby("kode_lokasi")
         .agg(
             total_aset=("status_aset", "count"),
             disewa=("status_aset", lambda x: (x == "Disewa").sum()),
@@ -68,16 +103,13 @@ def render_map(df_aset):
             internal=("status_aset", lambda x: x.str.contains("Internal", case=False).sum()),
         )
         .reset_index()
-        .rename(columns={"lokasi": "nama_lokasi"})
+        .rename(columns={"kode_lokasi": "kode_lokasi"})
     )
 
-    # =============================
-    # GABUNG KE MASTER LOKASI
-    # =============================
     df_map = (
         df_lokasi
-        .merge(status_summary, on="nama_lokasi", how="left")
-        .merge(jenis_aset_grouped, on="nama_lokasi", how="left")
+        .merge(status_summary, on="kode_lokasi", how="left")
+        .merge(jenis_aset_grouped, on="kode_lokasi", how="left")
     )
 
     df_map.fillna(
@@ -91,18 +123,14 @@ def render_map(df_aset):
         inplace=True
     )
 
-    # =============================
     # MAP
-    # =============================
     m = folium.Map(
         location=[-7.20525726742541, 112.741479010896],
-        zoom_start=16,
+        zoom_start=15,
         tiles="OpenStreetMap"
     )
 
-    # =============================
     # CSS POPUP KECIL
-    # =============================
     css = """
     <style>
     .leaflet-popup-content {
@@ -119,9 +147,7 @@ def render_map(df_aset):
     """
     m.get_root().html.add_child(folium.Element(css))
 
-    # =============================
     # MARKER
-    # =============================
     for _, row in df_map.iterrows():
         popup_html = f"""
         <div>
@@ -141,7 +167,4 @@ def render_map(df_aset):
             icon=folium.Icon(icon="info-sign", color="blue")
         ).add_to(m)
 
-    # =============================
-    # TAMPILKAN
-    # =============================
     st_folium(m, width="100%", height=500)

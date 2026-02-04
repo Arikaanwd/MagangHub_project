@@ -13,6 +13,12 @@
         "lon": "112.7366468241892"
     },
     {
+        "kode_lokasi": "harkan",
+        "nama_lokasi": "Div. Pemelliharaan dan Perbaikan (HARKAN)",
+        "lat": "-7.200657594968616",
+        "lon": "112.73987062177953"
+    },
+    {
         "kode_lokasi": "ATM_BNI",
         "nama_lokasi": "ATM BNI",
         "lat": "-7.205211508644232",
@@ -53,6 +59,30 @@
         "nama_lokasi": "Gedung KPM",
         "lat": "-7.20527870939247",
         "lon": "112.74243259214857"
+    },
+    {
+        "kode_lokasi": "desain",
+        "nama_lokasi": "Div. Desain",
+        "lat": "-7.205418",
+        "lon": "112.741469"
+    },
+    {
+        "kode_lokasi": "material",
+        "nama_lokasi": "Gedung Penerimaan Material",
+        "lat": "-7.206246169201998",
+        "lon": "112.74257687367258"
+    },
+    {
+        "kode_lokasi": "div_marketing",
+        "nama_lokasi": "Div. Marketing",
+        "lat": "-7.205418",
+        "lon": "112.741469"
+    },
+    {
+        "kode_lokasi": "kop_kb",
+        "nama_lokasi": "Gedung KOP KB",
+        "lat": "-7.206165",
+        "lon": "112.742931"
     }
 ]   
 

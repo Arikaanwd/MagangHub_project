@@ -9,18 +9,14 @@ import folium
 from streamlit_folium import st_folium
 from maps.leaflet_maps import render_map
 
-# ===== Cek login di awal =====
-# sync_session_from_cookie(cookie)
-# ======================
-def show_Dashboard_Global():
-    # sync_session_from_cookie(st.session_state.cookie_manager)
-    st.title("🔔 Dashboard Global Aset")
-# st.title("🔔 Dashboard Global Aset")
-# st.set_page_config(layout="wide")
 
-    # ======================
-    # Realtime Tanggal & Waktu
-    # ======================
+
+def show_Dashboard_Global():
+    st.title("🔔 Dashboard Global Aset")
+    
+    # st.title("🔔 Dashboard Global Aset")
+    # st.set_page_config(layout="wide")
+
     time_placeholder = st.empty()
     now = datetime.now()
     time_str = now.strftime('%H:%M')
@@ -34,16 +30,12 @@ def show_Dashboard_Global():
     )
     time.sleep(1)
 
-    # init timer
     if "last_refresh" not in st.session_state:
         st.session_state.last_refresh = time.time()
 
-    # refresh tiap 60 detik
     if time.time() - st.session_state.last_refresh > 60:
         st.session_state.last_refresh = time.time()
-        # st.experimental_rerun()
-
-    # Helper
+        
     # ======================
     def format_rupiah_full(n):
         return f"Rp {n:,.0f}".replace(",", ".")
@@ -70,18 +62,14 @@ def show_Dashboard_Global():
             range=[0, max_val * 1.2 if max_val > 0 else 1],
             tickformat=","
         )
-    # ======================
-    # Load & Filter Data
+
     # ======================
     df = load_aset_data()
     df = apply_global_filters(df)
 
-    # KUNCI TAHUN AKTIF (SINKRON DENGAN DATETIME)
     # ======================
     df["nilai"] = pd.to_numeric(df["nilai"], errors="coerce").fillna(0)
 
-    # ======================
-   # FILTER SPER VALID
     # ======================
     df_sper_valid = df[
         df["nomor_surat"].notna() &
@@ -90,7 +78,6 @@ def show_Dashboard_Global():
         )
     ].copy()
 
-    # NORMALISASI (WAJIB)
     # ======================
     df_sper_valid["penyewa"] = (
         df_sper_valid["penyewa"]
@@ -106,67 +93,50 @@ def show_Dashboard_Global():
         .str.strip()
     )
 
-    # DATA UNTUK SEMUA CHART
     # ======================
     # df_chart = df_filtered.copy()
-
-    # ======================
-    # FILTER DATA (DI BAWAH METRIC)
-    # ======================
     st.subheader("Filter Data")
-
     f1, f2, f3 = st.columns(3)
 
-    # ======================
-    # 1. FILTER TAHUN
-    # ======================
+    # =================
+    df_base = df_sper_valid.copy()
+
+    # =================
     with f1:
         tahun_selected = st.multiselect(
             "Tahun",
-            options=sorted(df_sper_valid["tahun"].dropna().astype(int).unique()),
+            options=sorted(df_base["tahun"].dropna().astype(int).unique()),
             default=st.session_state.get("tahun_selected", [])
         )
 
-    # ======================
-    # 2. FILTER JENIS ASET
-    # ======================
+    if tahun_selected:
+        df_base = df_base[df_base["tahun"].isin(tahun_selected)]
+
+    # ==================
     with f2:
         jenis_selected = st.multiselect(
             "Jenis Aset",
-            options=sorted(df_sper_valid["jenis_aset"].dropna().unique()),
+            options=sorted(df_base["jenis_aset"].dropna().unique()),
             default=st.session_state.get("jenis_selected", [])
         )
 
-    # ======================
-    # 3. BUAT DATA SEMENTARA UNTUK OPSI PENYEWA
-    # ======================
-    df_penyewa_option = df_sper_valid.copy()
-
-    if tahun_selected:
-        df_penyewa_option = df_penyewa_option[
-            df_penyewa_option["tahun"].isin(tahun_selected)
-        ]
-
     if jenis_selected:
-        df_penyewa_option = df_penyewa_option[
-            df_penyewa_option["jenis_aset"].isin(jenis_selected)
-        ]
+        df_base = df_base[df_base["jenis_aset"].isin(jenis_selected)]
 
-    # ======================
-    # 4. FILTER PENYEWA (SUDAH TERGANTUNG JENIS ASET)
-    # ======================
+    # ===================
     with f3:
         penyewa_selected = st.multiselect(
             "Penyewa",
-            options=sorted(df_penyewa_option["penyewa"].dropna().unique()),
+            options=sorted(df_base["penyewa"].dropna().unique()),
             default=st.session_state.get("penyewa_selected", [])
         )
-        
-    # SIMPAN KE SESSION
+
+    # ===================
     st.session_state["tahun_selected"] = tahun_selected
     st.session_state["jenis_selected"] = jenis_selected
     st.session_state["penyewa_selected"] = penyewa_selected
-    
+
+    # ===================
     df_filtered = df_sper_valid.copy()
 
     if tahun_selected:
@@ -181,8 +151,6 @@ def show_Dashboard_Global():
     df_chart = df_filtered.copy()
 
     # ======================
-    # DATA KHUSUS SUMMARY (DIKUNCI KE TAHUN AKTIF)
-    # ======================
     current_year = datetime.now().year
 
     if tahun_selected:
@@ -196,8 +164,7 @@ def show_Dashboard_Global():
 
     st.divider()
 
-    # Summary Global
-    # ======================
+    # ==========================
     st.subheader("Summary")
     df_metric = df_summary.copy()
     sper_per_aset = (
@@ -227,9 +194,6 @@ def show_Dashboard_Global():
 
     render_map(df_chart)
 
-    # =============================
-    # LINE CHART – TREN NILAI KONTRIBUSI (SEMUA TAHUN)
-    # =============================
     st.subheader("Tren Nilai Kontribusi SPER per Tahun")
     trend = (
         df_chart
@@ -255,14 +219,13 @@ def show_Dashboard_Global():
     )
     fig_line.update_xaxes(
         tickmode="linear",
-        tickformat="d"   # penting: tahun tidak pakai koma
+        tickformat="d"
     )
     fig_line.update_yaxes(tickformat=",")
     st.plotly_chart(fig_line, width="stretch")
     st.divider()
     
-    # Distribusi & Komposisi
-    # ====================== 
+    # Distribusi & Komposisi 
     current_year = datetime.now().year
 
     if tahun_selected:
@@ -271,13 +234,13 @@ def show_Dashboard_Global():
         df_chart = df_filtered[df_filtered["tahun"] == current_year].copy()  
 
     st.header("Proporsi Aset dan Nilai Kontribusi")
-    c9, c10  = st.columns(2)
+    c9, c10  = st.columns([1.8,1])
     with c9:
-        df_jenis_count = (
+        df_jenis = (
             df_chart
-            .groupby("jenis_aset", as_index=False)
-            .size()
-            .rename(columns={"size": "jumlah_sper"})
+            .groupby("jenis_aset", as_index=False)["nilai"]
+            .sum()
+            .sort_values("nilai")
         )
         urutan_aset = [
             "Rumah Dinas",
@@ -286,35 +249,40 @@ def show_Dashboard_Global():
             "Lahan",
             "Mess"
         ]
-        df_jenis_count["jenis_aset"] = pd.Categorical(
-            df_jenis_count["jenis_aset"],
+        df_jenis["jenis_aset"] = pd.Categorical(
+            df_jenis["jenis_aset"],
             categories=urutan_aset,
             ordered=True
         )
+        df_jenis = df_jenis.sort_values("jenis_aset")
 
-        df_jenis_count = df_jenis_count.sort_values("jenis_aset")
+        df_jenis["label_nilai"] = df_jenis["nilai"].apply(label_nilai_id)
+        df_jenis["tooltip_nilai"] = df_jenis["nilai"].apply(format_rupiah_full)
 
-        total_sper = df_jenis_count["jumlah_sper"].sum()
-        df_jenis_count["persentase"] = (
-            df_jenis_count["jumlah_sper"] / total_sper * 100
-        ).round(1)
-
-        fig_pie = px.pie(
-            df_jenis_count,
-            names="jenis_aset",
-            values="jumlah_sper",   # tetap dipakai untuk proporsi
-            hole=0.4,
-            title="Proporsi SPER per Jenis Aset",
-            category_orders={"jenis_aset": urutan_aset}
+        fig_bar = px.bar(
+            df_jenis,
+            x="jenis_aset",
+            y="nilai",
+            color="jenis_aset",
+            labels={
+                "jenis_aset": "Jenis Aset",
+                "nilai": "Nilai Kontribusi"
+            },
+            title="Total Kontribusi per Jenis Aset"
         )
-        fig_pie.update_traces(
-            textinfo="percent+label",
+        fig_bar.update_traces(
+            texttemplate="Rp %{y:,.0f}",     
+            textposition="outside",
             hovertemplate=
-                "<b>Jenis Aset</b>: %{label}<br>" +
-                "<b>Jumlah</b>: %{value}<extra></extra>"
+                "<b>Aset</b>: %{x}<br>" +
+                "<b>Total Nilai</b>: Rp %{y:,.0f}<extra></extra>"
         )
-
-        st.plotly_chart(fig_pie, width="stretch")
+        fig_bar.update_xaxes(categoryorder="array", categoryarray=urutan_aset)
+        apply_safe_rupiah_axis(fig_bar, df_jenis["nilai"])
+        
+        fig_bar.update_layout(height=550)
+        st.plotly_chart(fig_bar, width="stretch")
+        
     with c10:
         df_jenis_nilai = (
             df_chart
@@ -347,66 +315,14 @@ def show_Dashboard_Global():
                 "<b>Jenis Aset</b>: %{label}<br>" +
                 "<b>Nilai</b>: Rp %{value:,.0f}<extra></extra>"
         )
+        fig_pie_nilai.update_layout(height=550)
         st.plotly_chart(fig_pie_nilai, width="stretch")
-    
-    # ============================
-    st.subheader("Distribusi Aset")
-    
-    df_jenis = (
-        df_chart
-        .groupby("jenis_aset", as_index=False)["nilai"]
-        .sum()
-        .sort_values("nilai")
-    )
-    urutan_aset = [
-        "Rumah Dinas",
-        "Kantor",
-        "Kontainer",
-        "Lahan",
-        "Mess"
-    ]
 
-    df_jenis["jenis_aset"] = pd.Categorical(
-        df_jenis["jenis_aset"],
-        categories=urutan_aset,
-        ordered=True
-    )
+    st.divider()
 
-    df_jenis = df_jenis.sort_values("jenis_aset")
-
-    df_jenis["label_nilai"] = df_jenis["nilai"].apply(label_nilai_id)
-    df_jenis["tooltip_nilai"] = df_jenis["nilai"].apply(format_rupiah_full)
-
-    fig_bar = px.bar(
-        df_jenis,
-        x="jenis_aset",
-        y="nilai",
-        color="jenis_aset",
-        labels={
-            "jenis_aset": "Jenis Aset",
-            "nilai": "Nilai Kontribusi"
-        },
-        title="Total Kontribusi per Jenis Aset"
-    )
-    fig_bar.update_traces(
-        texttemplate="Rp %{y:,.0f}",     
-        textposition="outside",
-        hovertemplate=
-            "<b>Aset</b>: %{x}<br>" +
-            "<b>Total Nilai</b>: Rp %{y:,.0f}<extra></extra>"
-    )
-    fig_bar.update_xaxes(categoryorder="array", categoryarray=urutan_aset)
-    apply_safe_rupiah_axis(fig_bar, df_jenis["nilai"])
-    
-    fig_bar.update_layout(height=500)
-    st.plotly_chart(fig_bar, width="stretch")
-
-    # Tren & Ranking
     # =======================
-    st.subheader("Top 10 Penyewa Berdasarkan Nilai Kontribusi")
-    #========================
-    # Top Penyewa
-    
+    st.subheader("Penyewa Berdasarkan Nilai Kontribusi")
+
     if "penyewa" in df_sper_valid.columns:
         df_top = (
             df_chart
@@ -449,28 +365,24 @@ def show_Dashboard_Global():
         fig_hbar.update_layout(height=500)
 
         st.plotly_chart(fig_hbar, width="stretch")
-
     else:
         st.warning("Kolom 'penyewa' tidak ditemukan")
 
     st.divider()
 
-
     # =======================================
-
     def normalize_status(text):
         if pd.isna(text):
             return "Tidak Diketahui"
-
         text = str(text).strip().lower()
-
         mapping = {
             # umum
             "disewa": "Disewa",
             "kosong": "Kosong",
-            "digunakan internal": "Digunakan Internal",
-            "digunakan internal pal": "Digunakan Internal",
-
+            "internal": "Internal",
+            "digunakan internal": "Internal",
+            "digunakan internal pal": "Internal",
+            
             # kondisi
             "baik": "Kondisi Baik",
             "kondisi baik": "Kondisi Baik",
@@ -478,6 +390,9 @@ def show_Dashboard_Global():
             "rusak ringan": "Rusak",
             "rusak berat": "Rusak Berat",
             "butuh perbaikan": "Butuh Perbaikan",
+            "perbaikan": "Perbaikan",
+            "tidak aktif": "Tidak Aktif",
+            "fasilitas proyek": "Internal",
 
             # operasional
             "proses": "Proses",
@@ -487,10 +402,7 @@ def show_Dashboard_Global():
         return mapping.get(text, text.title())
 
     # ============================
-    # STATUS ASET PER JENIS ASET (LENGKAP ENUM)
-    # ============================
-    st.subheader("Status Aset per Jenis Aset")
-
+    st.subheader("Proporsi SPER Aset dan Kondisi Aset")
     urutan_aset = [
         "Rumah Dinas",
         "Kantor",
@@ -498,7 +410,6 @@ def show_Dashboard_Global():
         "Lahan",
         "Mess"
     ]
-
     urutan_status = [
         "Kosong",
         "Disewa",
@@ -506,13 +417,11 @@ def show_Dashboard_Global():
         "Perbaikan",
         "Tidak Aktif"
     ]
-
-    df_status_raw = df.copy()
-
-    # 🔥 FIX UTAMA: aset fisik harus unik
+    df_status_raw = df_chart.copy()
     df_status_raw = df_status_raw.drop_duplicates(subset=["kode_aset"])
 
-    # Filter hanya berdasarkan jenis aset
+    df_status_raw["status_aset"] = df_status_raw["status_aset"].apply(normalize_status)
+
     if jenis_selected:
         df_status_raw = df_status_raw[
             df_status_raw["jenis_aset"].isin(jenis_selected)
@@ -531,21 +440,20 @@ def show_Dashboard_Global():
     )
 
     # ===============================
-    # PAKSA SEMUA KOMBINASI MUNCUL
-    # ===============================
     all_jenis = df_status_raw["jenis_aset"].unique()
-    all_status = ["Kosong", "Disewa", "Internal", "Tidak Aktif", "Perbaikan"]
-    
+    all_status = ["Kosong", "Disewa", "Internal", "Perbaikan", "Tidak Aktif"]
+
     index_full = pd.MultiIndex.from_product(
-        [all_jenis, all_status],
+        [df_status_raw["jenis_aset"].unique(), all_status],
         names=["jenis_aset", "status_aset"]
     )
 
     summary = (
-        summary
-        .set_index(["jenis_aset", "status_aset"])
+        df_status_raw
+        .groupby(["jenis_aset", "status_aset"])
+        .size()
         .reindex(index_full, fill_value=0)
-        .reset_index()
+        .reset_index(name="jumlah")
     )
 
     summary["jenis_aset"] = pd.Categorical(
@@ -560,48 +468,93 @@ def show_Dashboard_Global():
         ordered=True
     )
 
-    # ============================
-    # CHART
-    # ============================
-    fig_status = px.bar(
-        summary,
-        x="jenis_aset",
-        y="jumlah",
-        color="status_aset",
-        text="jumlah",
-        labels={
-            "status_aset": "Status Aset",
-            "jenis_aset": "Jenis Aset",
-            "jumlah": "Jumlah"
-        },
-        category_orders={
-            "jenis_aset": urutan_aset,
-            "status_aset": [
-                "Kosong",
-                "Disewa",
-                "Internal",
-                "Tidak Aktif",
-                "Perbaikan"
-            ]
-        }
-    )
+    # ===========================
+    c11,c12 = st.columns([1,1.3])
+    with c11:
+        df_jenis_count = (
+            df_chart
+            .groupby("jenis_aset", as_index=False)
+            .size()
+            .rename(columns={"size": "jumlah_sper"})
+        )
+        urutan_aset = [
+            "Rumah Dinas",
+            "Kantor",
+            "Kontainer",
+            "Lahan",
+            "Mess"
+        ]
+        df_jenis_count["jenis_aset"] = pd.Categorical(
+            df_jenis_count["jenis_aset"],
+            categories=urutan_aset,
+            ordered=True
+        )
 
-    fig_status.update_traces(
-        textposition="inside",
-        hovertemplate=
-            "<b>Jenis Aset</b>: %{x}<br>"
-            "<b>Status</b>: %{fullData.name}<br>"
-            "<b>Jumlah</b>: %{y}<extra></extra>"
-    )
-    fig_status.update_layout(
-        barmode="stack",
-        height=560,
-        legend_title_text="Status Aset"
-    )
+        df_jenis_count = df_jenis_count.sort_values("jenis_aset")
 
-    fig_status.update_xaxes(
-        categoryorder="array",
-        categoryarray=urutan_aset
-    )
+        total_sper = df_jenis_count["jumlah_sper"].sum()
+        df_jenis_count["persentase"] = (
+            df_jenis_count["jumlah_sper"] / total_sper * 100
+        ).round(1)
 
-    st.plotly_chart(fig_status, width="stretch")
+        fig_pie = px.pie(
+            df_jenis_count,
+            names="jenis_aset",
+            values="jumlah_sper",
+            hole=0.4,
+            title="Proporsi SPER Terhadap Jenis Aset",
+            category_orders={"jenis_aset": urutan_aset}
+        )
+        fig_pie.update_traces(
+            textinfo="percent+label",
+            hovertemplate=
+                "<b>Jenis Aset</b>: %{label}<br>" +
+                "<b>Jumlah</b>: %{value}<extra></extra>"
+        )
+        fig_pie.update_layout(height=500)
+        st.plotly_chart(fig_pie, width="stretch")
+
+    with c12:
+        fig_status = px.bar(
+            summary,
+            x="jenis_aset",
+            y="jumlah",
+            color="status_aset",
+            text="jumlah",
+            labels={
+                "status_aset": "Status Aset",
+                "jenis_aset": "Jenis Aset",
+                "jumlah": "Jumlah"
+            },
+            category_orders={
+                "jenis_aset": urutan_aset,
+                "status_aset": [
+                    "Kosong",
+                    "Disewa",
+                    "Internal",
+                    "Tidak Aktif",
+                    "Perbaikan"
+                ]
+            },
+            title="Distribusi Kondisi Aset"
+        )
+
+        fig_status.update_traces(
+            textposition="inside",
+            hovertemplate=
+                "<b>Jenis Aset</b>: %{x}<br>"
+                "<b>Status</b>: %{fullData.name}<br>"
+                "<b>Jumlah</b>: %{y}<extra></extra>"
+        )
+        fig_status.update_layout(
+            barmode="stack",
+            height=560,
+            legend_title_text="Status Aset"
+        )
+
+        fig_status.update_xaxes(
+            categoryorder="array",
+            categoryarray=urutan_aset
+        )
+        fig_status.update_layout(height=500)
+        st.plotly_chart(fig_status, width="stretch")

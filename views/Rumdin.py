@@ -6,13 +6,12 @@ from data_loader import load_aset_data, load_master_rumdin
 from datetime import datetime
 import time
 
-#configurasi
+
 def show_Rumdin():
     st.title("🏠 Dashboard SPER Rumah Dinas")
-# st.title("🏠 Dashboard SPER Rumah Dinas")
-# st.set_page_config(layout="wide")
+    # st.title("🏠 Dashboard SPER Rumah Dinas")
+    # st.set_page_config(layout="wide")
 
-    # Realtime Tanggal & Waktu
     # ======================
     time_placeholder = st.empty()
     now = datetime.now()
@@ -27,7 +26,6 @@ def show_Rumdin():
     )
     time.sleep(1)
 
-    #definisi nilai rupiah
     def format_rupiah(n):
         return f"Rp {n:,.0f}".replace(",", ".")
     def format_rupiah_singkat(n):
@@ -55,16 +53,15 @@ def show_Rumdin():
             return val.strftime("%d-%m-%Y")
         except:
             return val
+    
     # =========================
-    #load data
     df = load_aset_data()
     df_master_rumdin = load_master_rumdin()
+    
     # =========================
-    #filter aset
     df = df[df["jenis_aset"] == "Rumah Dinas"].copy()
-    # ========================
+    
     # ===================
-    #normalisasi
     df["nilai"] = pd.to_numeric(df["nilai"], errors="coerce").fillna(0)
     df["durasi_bulan"] = pd.to_numeric(df["durasi_bulan"], errors="coerce").fillna(0)
     def normalize_kosong(series, label):
@@ -81,69 +78,70 @@ def show_Rumdin():
     df["keterangan"] = normalize_kosong(df["keterangan"], "Kreditur Tidak Diisi")
 
     # ===================
-    # APPLY FILTER SIDEBAR
     st.header("Filter Rumah Dinas")
-    b1,b2,b3,b4 = st.columns(4)
+    b1, b2, b3, b4 = st.columns(4)
 
     df_filtered = df.copy()
-
+    
     with b1:
-        # Filter Tahun
-        tahun_list = sorted(df_filtered["tahun"].dropna().astype(int).unique())
+        tahun_list = sorted(df["tahun"].dropna().astype(int).unique())
         tahun = st.multiselect("Tahun SPER", tahun_list)
-        st.session_state["tahun_selected"] = tahun
-        if tahun:
-            df_filtered = df_filtered[df_filtered["tahun"].isin(tahun)]
+
+        if not tahun:
+            tahun = [datetime.now().year]
+
+        df_filtered = df_filtered[df_filtered["tahun"].isin(tahun)]
 
     with b2:
-        # Filter Penyewa
-        penyewa_list = sorted(df_filtered["penyewa"].dropna().unique())
+        penyewa_list = sorted(df_filtered["penyewa"].unique())
         penyewa = st.multiselect("Penyewa", penyewa_list)
+
         if penyewa:
             df_filtered = df_filtered[df_filtered["penyewa"].isin(penyewa)]
 
     with b3:
-        # Filter Kreditur
-        kreditur_list = sorted(df_filtered["keterangan"].dropna().unique())
+        kreditur_list = sorted(df_filtered["keterangan"].unique())
         kreditur = st.multiselect("Kreditur", kreditur_list)
+
         if kreditur:
             df_filtered = df_filtered[df_filtered["keterangan"].isin(kreditur)]
 
     with b4:
-        # Filter Status
-        status_list = sorted(df_filtered["status_aset"].dropna().unique())
+        status_list = sorted(df_filtered["status_aset"].unique())
         status_ = st.multiselect("Status Rumah", status_list)
+
         if status_:
             df_filtered = df_filtered[df_filtered["status_aset"].isin(status_)]
 
     st.divider()
+
     # ===================
-    #data sper nomor_surat
     df_sper_valid = df[
         df["nomor_surat"].notna() &
         (df["nomor_surat"].str.strip() != " ") &
         (df["nomor_surat"].str.strip() != "") &
         (df["nomor_surat"].str.strip() != "-")    
     ].copy()
+    
     # ==================
     # inisialisasi tahun saat ini
-    current_year = datetime.now().year
-    selected_year = st.session_state.get("tahun_selected")
+    # current_year = datetime.now().year
+    # selected_year = st.session_state.get("tahun_selected")
 
-    if selected_year and len(selected_year) > 0:
-        df_chart = df_sper_valid[df_sper_valid["tahun"].isin(selected_year)].copy()
-    else:
-        # default: tahun saat ini
-        df_chart = df_sper_valid[df_sper_valid["tahun"] == current_year].copy()
+    # if selected_year and len(selected_year) > 0:
+    #     df_filtered = df_sper_valid[df_sper_valid["tahun"].isin(selected_year)].copy()
+    # else:
+    #     # default: tahun saat ini
+    #     df_filtered = df_sper_valid[df_sper_valid["tahun"] == current_year].copy()
 
-    if df_chart.empty:
-        st.warning("Tidak ada data SPER untuk tahun yang dipilih")
-        st.stop()
+    # if df_filtered.empty:
+    #     st.warning("Tidak ada data SPER untuk tahun yang dipilih")
+    #     st.stop()
+
     # ===================
-    #KPI
-    total_sper = df_chart["nomor_surat"].nunique()
+    total_sper = df_filtered["kode_aset"].nunique()
     total_rumah = df_master_rumdin["kode_rumdin"].dropna().str.strip().nunique()
-    total_nilai = df_chart["nilai"].sum()
+    total_nilai = df_filtered["nilai"].sum()
 
     c1, c2, c3 = st.columns(3)
     c1.metric("Total SPER", total_sper)
@@ -154,7 +152,6 @@ def show_Rumdin():
     st.divider()
 
     # ==================
-    #chart durasi
     st.subheader("Tren Nilai Kontribusi SPER per Tahun")
     trend = (
         df_sper_valid
@@ -186,87 +183,10 @@ def show_Rumdin():
     st.plotly_chart(fig_line, width="stretch")
     st.divider()
 
-    # ==============
-    st.subheader("Distribusi Rumah Dinas Berdasarkan Jumlah Data")
-    # Count per Penyewa
-    #bar chart
-    dist_penyewa = (
-        df_chart
-        .groupby("penyewa")
-        .size()
-        .reset_index(name="jumlah_data")
-        .sort_values("jumlah_data", ascending=False)
-    )
-    fig_bar_count = px.bar(
-        dist_penyewa,
-        x="penyewa",
-        y="jumlah_data",
-        labels={
-            "penyewa": "Rumah Dinas",
-            "jumlah_data": "Jumlah Data"
-        },
-        title="Jumlah Data Rumah Dinas Berdasarkan Penyewa"
-    )
-    fig_bar_count.update_traces(
-        text=dist_penyewa["jumlah_data"],
-        textposition="outside",
-        hovertemplate="Rumah Dinas : %{x}<br>Jumlah : %{y}<extra></extra>"
-    )
-    fig_bar_count.update_layout(height=550)
-
-    #pie chart
-    df_status = df_chart.copy()
-    # Bersihkan status ringan (tanpa mapping manual)
-    df_status["status_aset"] = (
-        df_status["status_aset"]
-        .astype(str)
-        .str.strip()
-        .replace("", "Status Tidak Diisi")
-    )
-    dist_status = (
-        df_status
-        .groupby("status_aset")
-        .size()
-        .reset_index(name="jumlah")
-        .sort_values("jumlah", ascending=False)
-    )
-    fig_pie_status = px.pie(
-        dist_status,
-        names="status_aset",
-        values="jumlah",
-        hole=0.45,
-        title="Proporsi Rumah Dinas Berdasarkan Kondisi Rumah"
-    )
-    fig_pie_status.update_traces(
-        textinfo="percent+label",
-        hovertemplate="<b>Status</b>: %{label}<br><b>Jumlah Rumah</b>: %{value}<extra></extra>"
-    )
-
-    fig_pie_status.update_layout(height=550)
-
-    c7, c8 = st.columns([1.8,1])
-    with c7:
-        st.plotly_chart(fig_bar_count, width="stretch")
-    with c8:
-        st.plotly_chart(fig_pie_status, width="stretch")
-    st.divider()
-    # ==============
-    # bar top penyewa
-    # current_year = datetime.now().year
-
-    # if "tahun" in df.columns:
-    #     selected_year = st.session_state.get("tahun_selected")
-    # else:
-    #     selected_year=None   
-
-    # if not selected_year:
-    #     df_chart = df_sper_valid[df_sper_valid["tahun"] == current_year].copy()
-    # else: 
-    #     df_chart = df_sper_valid[df_sper_valid["tahun"].isin(selected_year)].copy()   
-    
-    st.subheader("Penyewa SPER Berdasrakan Nilai Kontribusi")
+    # ============================
+    st.subheader("Penyewa SPER Berdasarkan Nilai Kontribusi")
     top_penyewa=(
-        df_chart
+        df_filtered
         .groupby("penyewa")["nilai"]
         .sum()
         .reset_index()
@@ -301,14 +221,83 @@ def show_Rumdin():
     st.plotly_chart(fig_penyewa, width="stretch")
 
     st.divider()
+
+    # =================
+    st.subheader("Distribusi Rumah Dinas Berdasarkan Jumlah Data")
+    dist_penyewa = (
+        df_filtered
+        .groupby("penyewa")
+        .size()
+        .reset_index(name="jumlah_data")
+        .sort_values("jumlah_data", ascending=False)
+    )
+    fig_bar_count = px.bar(
+        dist_penyewa,
+        x="penyewa",
+        y="jumlah_data",
+        labels={
+            "penyewa": "Rumah Dinas",
+            "jumlah_data": "Jumlah Data"
+        },
+        title="Jumlah Data Rumah Dinas Berdasarkan Penyewa"
+    )
+    fig_bar_count.update_traces(
+        text=dist_penyewa["jumlah_data"],
+        textposition="outside",
+        hovertemplate="Rumah Dinas : %{x}<br>Jumlah : %{y}<extra></extra>"
+    )
+    fig_bar_count.update_layout(height=480)
+
+    #pie chart
+    df_master_rumdin["status_aset"] = (
+        df_master_rumdin["status_aset"]
+        .astype(str)
+        .str.strip()
+        .replace("", "Status Tidak Diisi")
+    )
+
+    kode_aktif = df_filtered["kode_aset"].unique()
+
+    df_status = df_master_rumdin[
+        df_master_rumdin["kode_rumdin"].isin(kode_aktif)
+    ]
+
+    dist_status = (
+        df_status
+        .groupby("status_aset", as_index=False)
+        .size()
+        .rename(columns={"size": "jumlah"})
+        .sort_values("jumlah", ascending=False)
+    )
+
+    fig_pie_status = px.pie(
+        dist_status,
+        names="status_aset",
+        values="jumlah",
+        hole=0.45,
+        title="Proporsi Rumah Dinas Berdasarkan Kondisi Rumah"
+    )
+    fig_pie_status.update_traces(
+        textposition="inside",
+        textinfo="percent+label",
+        hovertemplate="<b>Status</b>: %{label}<br><b>Jumlah Rumah</b>: %{value}<extra></extra>"
+    )
+
+    fig_pie_status.update_layout(height=500)
+
+    c7, c8 = st.columns([1.8,1])
+    with c7:
+        st.plotly_chart(fig_bar_count, width="stretch")
+    with c8:
+        st.plotly_chart(fig_pie_status, width="stretch")
+    st.divider()
+
     # ==============
-    # Bar Chart Penyewa
     st.subheader("Distribusi Alamat Berdasarkan Kondisi Rumah Dinas")
-    #bar chart horizontal
     def kelompok_alamat(alamat):
         if not isinstance(alamat, str):
             return "Tidak Diketahui"
-
+        
         a = alamat.lower()
 
         if "embong kemiri" in a:
@@ -336,11 +325,10 @@ def show_Rumdin():
         else:
             return "Wilayah Lainnya"
 
-    df_chart["kelompok_alamat"] = df_chart["lokasi"].apply(kelompok_alamat)
-
+    df_filtered["kelompok_alamat"] = df_filtered["lokasi"].apply(kelompok_alamat)
 
     alamat_status = (
-        df_chart
+        df_filtered
         .groupby(["kelompok_alamat", "status_aset"])["lokasi"]
         .nunique()
         .reset_index(name="jumlah_rumah")
@@ -377,16 +365,15 @@ def show_Rumdin():
     st.divider()
 
     # =========================
-    #DETAIL TABLE
-    df = df.reset_index(drop=True)
-    df.index = df.index + 1
-    df["nilai_rupiah"] = df["nilai"].apply(format_rupiah)
+    df_filtered = df_filtered.reset_index(drop=True)
+    df_filtered.index = df_filtered.index + 1
+    df_filtered["nilai_rupiah"] = df_filtered["nilai"].apply(format_rupiah)
 
     st.subheader("📋 Detail SPER Rumah Dinas")
-    df["tanggal_mulai_tgl"] = df["tanggal_mulai"].apply(format_tanggal_indo)
-    df["tanggal_selesai_tgl"] = df["tanggal_selesai"].apply(format_tanggal_indo)
+    df_filtered["tanggal_mulai_tgl"] = df_filtered["tanggal_mulai"].apply(format_tanggal_indo)
+    df_filtered["tanggal_selesai_tgl"] = df_filtered["tanggal_selesai"].apply(format_tanggal_indo)
     st.dataframe(
-        df[[
+        df_filtered[[
             "nomor_surat",
             "kode_aset",
             "lokasi",

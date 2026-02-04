@@ -6,15 +6,12 @@ from data_loader import load_master_kantor
 from datetime import datetime
 import time
 
-# #configurasi
-def show_Kantor():
-    # sync_session_from_cookie(st.session_state.cookie_manager)
-    st.title("🏢 Dashboard SPER Kantor")
-# st.title("🏢 Dashboard SPER Kantor")
-# st.set_page_config(layout="wide")
 
-    # ======================
-    # Realtime Tanggal & Waktu
+def show_Kantor():
+    st.title("🏢 Dashboard SPER Kantor")
+    # st.title("🏢 Dashboard SPER Kantor")
+    # st.set_page_config(layout="wide")
+
     # ======================
     time_placeholder = st.empty()
     now = datetime.now()
@@ -29,7 +26,6 @@ def show_Kantor():
     )
     time.sleep(1)
 
-    #definisi nilai uang 
     def format_rupiah(n):
         return f"Rp {n:,.0f}".replace(",", ".")
     def format_rupiah_singkat(n):
@@ -57,77 +53,66 @@ def show_Kantor():
             return val.strftime("%d-%m-%Y")
         except:
             return val
+        
     # =========================
-    #LOAD DATA
     df = load_aset_data()
     df_master_kantor = load_master_kantor()
-
-    #filter aset
     df = df[df["jenis_aset"] == "Kantor"].copy()
 
-    #====================
-    
     # ===================
-    #NORMALISASI
     df["nilai"] = pd.to_numeric(df["nilai"], errors="coerce").fillna(0)
     df["durasi_bulan"] = pd.to_numeric(df["durasi_bulan"], errors="coerce").fillna(0)
-
+    df["tahun"] = pd.to_numeric(df["tahun"], errors="coerce").fillna(0).astype(int)
+    
     # ==================
-    # FILTER SIDEBAR
     st.header("Filter Kantor")
     a1, a2, a3 = st.columns(3)
-
-    df_filtered = df.copy()  # gunakan df_filtered sebagai df yang difilter
-
+    df_filtered = df.copy()
+    
     with a1:
-        tahun_list = sorted(df_filtered["tahun"].dropna().astype(int).unique())
+        tahun_list = sorted(df["tahun"].dropna().unique())
         tahun = st.multiselect("Tahun SPER", tahun_list)
-        st.session_state["tahun_selected"] = tahun
-        if tahun:
-            df_filtered = df_filtered[df_filtered["tahun"].isin(tahun)]
+
+        if not tahun:
+            tahun = [datetime.now().year] 
+
+        df_filtered = df_filtered[df_filtered["tahun"].isin(tahun)]
 
     with a2:
         penyewa_list = sorted(df_filtered["penyewa"].dropna().unique())
         penyewa = st.multiselect("Penyewa", penyewa_list)
+
         if penyewa:
             df_filtered = df_filtered[df_filtered["penyewa"].isin(penyewa)]
 
     with a3:
         status_list = sorted(df_filtered["status_aset"].dropna().unique())
         status_ = st.multiselect("Status Kantor", status_list)
+
         if status_:
             df_filtered = df_filtered[df_filtered["status_aset"].isin(status_)]
-
-    st.divider()
+    
     # ===================
-    #data sper nomor_surat pages kantor
     df_sper_valid = df[
         df["nomor_surat"].notna() &
         (df["nomor_surat"].str.strip() != " ") &
         (df["nomor_surat"].str.strip() != "") &
         (df["nomor_surat"].str.strip() != "-")    
     ].copy()
-    # ================================
-    # inisialisai tahun saat ini
-    current_year = datetime.now().year
-    selected_year = st.session_state.get("tahun_selected")
-
-    if selected_year:
-        df_summary = df_sper_valid[df_sper_valid["tahun"].isin(selected_year)].copy()
-    else:
-        df_summary = df_sper_valid[df_sper_valid["tahun"] == current_year].copy()
+    
+    # ==================
+    df_summary = df_filtered.copy()
 
     if df_summary.empty:
-        st.warning("Tidak ada data SPER untuk tahun yang dipilih")
+        st.warning("Tidak ada data sesuai filter")
         st.stop()
 
-    #KPI UTAMA
     df_internal_pal = df_master_kantor[
         df_master_kantor["status_aset"]
         .str.contains("Internal", case=False, na=False)
     ]
 
-    total_sper = df_summary["nomor_surat"].nunique()
+    total_sper = df_summary["kode_aset"].nunique()
     total_nilai = df_summary["nilai"].sum()
     total_luas = df_summary["luas_m2"].median()
     total_sper_internal = df_internal_pal["kode_kantor"].nunique()
@@ -143,9 +128,7 @@ def show_Kantor():
     c4.metric("Total Nilai Kontribusi (Rp)", format_rupiah_singkat(total_nilai))
     st.caption(f"Nilai sebenarnya: {format_rupiah(total_nilai)}")
     st.divider()
-    # ==============
-    # ==============
-    # Tren SPER
+
     st.subheader("Tren Nilai Kontribusi SPER per Tahun")
     trend = (
         df_sper_valid
@@ -171,116 +154,52 @@ def show_Kantor():
     )
     fig_trend.update_xaxes(
         tickmode="linear",
-        tickformat="d"   # penting: tahun tidak pakai koma
+        tickformat="d" 
     )
     fig_trend.update_yaxes(tickformat=",")
     st.plotly_chart(fig_trend, width="stretch")
     st.divider()
 
-    #=================
-    #bar Chart
-    st.subheader("Distribusi SPER Kantor Berdasarkan Jumlah dan Kontribusi Penyewa")
-    sper_tahun = (
-        df_summary
-        .groupby("tahun")
-        .size()
-        .reset_index(name="jumlah")
-        .sort_values("tahun")
-    )
-    fig_year = px.bar(
-        sper_tahun,
-        x="tahun",
-        y="jumlah",
-        text="jumlah",
-        labels={"tahun": "Tahun", "jumlah": "Jumlah SPER"},
-        title= "Jumlah SPER per Tahun"
-    )
-    fig_year.update_traces(
-        textposition="outside",
-        hovertemplate=
-            "<b>Tahun</b>: %{x}<br>" +
-            "<b>Jumlah SPER</b>: %{y}<extra></extra>"
-    )
-    fig_year.update_xaxes(
-        tickmode="linear",
-        tickformat="d"
-    )
-    fig_year.update_layout(height=500)
-
-    # pie chart jumlah
-    status_dist = (
-        df_summary
-        .groupby("status_aset")
-        .size()
-        .reset_index(name="jumlah")
-    )
-    fig_status = px.pie(
-        status_dist,
-        names="status_aset",
-        values="jumlah",
-        hole=0.4,
-        title="Proporsi Jumlah Kondisi Aset Kantor"
-    )
-    fig_status.update_traces(
-        textinfo="percent+label",
-        hovertemplate=
-            "Status Aset: %{label} <br> Jumlah SPER: %{value}<extra></extra>"
-    )
-    fig_status.update_layout(height=500)
-
-    col1, col2= st.columns(2)
-    with col1:
-        st.plotly_chart(fig_year, width="stretch")
-    with col2:
-        st.plotly_chart(fig_status, width="stretch")
-    st.divider()
-
     # ===================
-    # LAYOUT CHART 2
-    # Distribusi jumlah ruang kantor 
     st.subheader("Distribusi Jumlah SPER Berdasarkan Lokasi Kantor")
     lokasi_kantor = (
         df_summary
-        .groupby("lokasi")["nomor_surat"]
-        .size()
-        .reset_index(name="jumlah_sper")
+        .groupby("lokasi",as_index=False)
+        .agg(
+            jumlah_sper=("nomor_surat", "size"),
+            total_nilai=("nilai", "sum")
+        )
         .sort_values("lokasi" , ascending=True)
     )
+    lokasi_kantor["label_nilai"]=lokasi_kantor["total_nilai"].apply(label_nilai_id)
+    lokasi_kantor["tooltip_nilai"]=lokasi_kantor["total_nilai"].apply(format_rupiah_full)
+
     fig_bar = px.bar(
         lokasi_kantor,
         x="lokasi",
-        y="jumlah_sper",
+        y="total_nilai",
         color="lokasi",
-        text="jumlah_sper",
         labels={
             "lokasi": "Lokasi",
-            "jumlah_sper": "Jumlah SPER"
-        }
+            "total_nilai": "Nilai Kontribusi (Rp)"
+        },
+        custom_data=["jumlah_sper"]
     )
     fig_bar.update_traces(
+        texttemplate="Rp %{y:,.0f}",  
         textposition="outside",
-        hovertemplate="Lokasi: %{x}<br>Jumlah SPER: %{y}<extra></extra>"
+        hovertemplate="Lokasi: %{x}<br>Jumlah SPER: %{customdata[0]}<br>Nilai Kontribusi: Rp %{y:,.0f}<extra></extra>",
     )
+    fig_bar.update_xaxes(
+        tickmode="linear",
+        tickformat="d"
+    )
+    fig_bar.update_yaxes(tickformat=",")
     fig_bar.update_layout(height=550)
     st.plotly_chart(fig_bar, width="stretch")
     st.divider()
 
-    #penyewa
-    # current_year = datetime.now().year
-
-    # # Jika user tidak memilih filter tahun di sidebar
-    # if "tahun" in df.columns:
-    #     selected_year = st.session_state.get("tahun_selected")
-    # else:
-    #     selected_year=None   
-
-    # if not selected_year:
-    #     df_chart = df_sper_valid[df_sper_valid["tahun"] == current_year].copy()
-    # else: 
-    #     df_chart = df_sper_valid[df_sper_valid["tahun"].isin(selected_year)].copy()   
-    
-    # ==============================
-    # Top 10 Penyewa
+    # ===============
     st.subheader("Penyewa SPER Berdasarkan Nilai Kontribusi")
     top_penyewa = (
         df_summary
@@ -315,18 +234,85 @@ def show_Kantor():
     )
     fig_penyewa.update_layout(height=480)
     st.plotly_chart(fig_penyewa, width="stretch")
+    st.divider()
 
-    #DETAIL TABLE
-    # Tabel Detail
-    # ======================================================
+    #=================
+    st.subheader("Distribusi SPER Kantor Berdasarkan Jumlah dan Kontribusi Penyewa")
+    sper_tahun = (
+        df_summary
+        .groupby("tahun")
+        .size()
+        .reset_index(name="jumlah")
+        .sort_values("tahun")
+    )
+    fig_year = px.bar(
+        sper_tahun,
+        x="tahun",
+        y="jumlah",
+        text="jumlah",
+        labels={"tahun": "Tahun", "jumlah": "Jumlah SPER"},
+        title= "Jumlah SPER per Tahun"
+    )
+    fig_year.update_traces(
+        textposition="outside",
+        hovertemplate=
+            "<b>Tahun</b>: %{x}<br>" +
+            "<b>Jumlah SPER</b>: %{y}<extra></extra>"
+    )
+    fig_year.update_xaxes(
+        tickmode="linear",
+        tickformat="d"
+    )
+    fig_year.update_layout(height=500)
+    # =============
+    df_status = df_master_kantor.copy()
+    df_status["status_aset"] = (
+        df_status["status_aset"]
+        .fillna("Kosong")
+        .replace("", "Kosong")
+        .astype(str)
+        .str.strip()
+    )
+
+    kode_terpakai = df_summary["kode_aset"].unique()
+    df_status = df_status[df_status["kode_kantor"].isin(kode_terpakai)]
+
+    status_dist = (
+        df_status
+        .groupby("status_aset")
+        .size()
+        .reset_index(name="jumlah")
+    )
+    fig_status = px.pie(
+        status_dist,
+        names="status_aset",
+        values="jumlah",
+        hole=0.4,
+        title="Proporsi Jumlah Kondisi Aset Kantor"
+    )
+    fig_status.update_traces(
+        textinfo="percent+label",
+        hovertemplate=
+            "Status Aset: %{label} <br> Jumlah: %{value}<extra></extra>"
+    )
+    fig_status.update_layout(height=500)
+
+    col1, col2= st.columns(2)
+    with col1:
+        st.plotly_chart(fig_year, width="stretch")
+    with col2:
+        st.plotly_chart(fig_status, width="stretch")
+    st.divider()
+
+    # ====================================
     st.subheader("📋 Detail SPER Kantor")
-    df = df.reset_index(drop=True)
-    df.index = df.index + 1
-    df["tanggal_mulai"] = df["tanggal_mulai"].apply(format_tanggal_indo)
-    df["tanggal_selesai"] = df["tanggal_selesai"].apply(format_tanggal_indo)
-    df["nilai_rupiah"] = df["nilai"].apply(format_rupiah)
+    df_summary = df_summary.reset_index(drop=True)
+    df_summary.index = df_summary.index + 1
+    df_summary["tanggal_mulai"] = df_summary["tanggal_mulai"].apply(format_tanggal_indo)
+    df_summary["tanggal_selesai"] = df_summary["tanggal_selesai"].apply(format_tanggal_indo)
+    df_summary["nilai_rupiah"] = df_summary["nilai"].apply(format_rupiah)
     st.dataframe(
-        df[[
+        df_summary[[
             "nomor_surat",
             "surat_addendum",
             "kode_aset",

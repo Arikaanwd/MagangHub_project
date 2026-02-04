@@ -12,8 +12,38 @@ def extract_year_from_nomor_surat(nomor):
 def load_master_rumdin():
     query = """
     SELECT 
-        kode_rumdin
+        kode_rumdin, status_aset
     FROM master_rumdin
+    """
+    data, columns = fetch(query)
+    df = pd.DataFrame(data, columns=columns)
+    return df
+
+def load_master_kontainer():
+    query = """
+    SELECT 
+        kode_kontainer, status_aset
+    FROM master_kontainer
+    """
+    data, columns = fetch(query)
+    df = pd.DataFrame(data, columns=columns)
+    return df
+
+def load_master_lahan():
+    query = """
+    SELECT 
+        kode_lahan, status_aset
+    FROM master_lahan
+    """
+    data, columns = fetch(query)
+    df = pd.DataFrame(data, columns=columns)
+    return df
+
+def load_master_mess():
+    query = """
+    SELECT 
+        kode_mess, status_aset
+    FROM master_mess
     """
     data, columns = fetch(query)
     df = pd.DataFrame(data, columns=columns)
@@ -144,16 +174,16 @@ def load_aset_data():
     data, columns = fetch(query)
     df = pd.DataFrame(data, columns=columns)
 
+    # fungsi konversi tipe data
     df["nilai"] = pd.to_numeric(df["nilai"], errors="coerce").fillna(0)
-
     df["durasi_bulan"] = pd.to_numeric(
         df["durasi_bulan"], errors="coerce"
     ).fillna(0).astype("Int64")
-
     df["tanggal_mulai"] = pd.to_datetime(df["tanggal_mulai"], errors="coerce")
     df["tanggal_selesai"] = pd.to_datetime(df["tanggal_selesai"], errors="coerce")
+    df["tahun"] = df["tanggal_mulai"].dt.year
 
-    df["tahun"] = df["nomor_surat"].apply(extract_year_from_nomor_surat)
+    # df["tahun"] = df["nomor_surat"].apply(extract_year_from_nomor_surat)
 
     df["keterangan"] = df["keterangan"].fillna("")
 

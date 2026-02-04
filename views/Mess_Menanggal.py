@@ -1,18 +1,60 @@
 import streamlit as st
 import plotly.express as px
 import pandas as pd
-from data_loader import load_aset_data
+from data_loader import load_aset_data, load_master_mess
 from datetime import datetime
 import time
+from database import fetch
 
-#configurasi
+
+@st.cache_data
+def load_mess_data():
+    query = """
+    SELECT 
+        mm.kode_mess AS kode_aset,
+        mm.status_aset,
+        mm.blok AS keterangan,
+        tm.id_transaksi,
+        tm.penyewa,
+        tm.unit_kerja AS lokasi,
+        tm.nomor_surat,
+        tm.tanggal_mulai,
+        tm.tanggal_selesai,
+        tm.durasi_bulan,
+        tm.nilai_kontribusi_perbulan
+    FROM master_mess mm
+    LEFT JOIN transaksi_mess tm ON mm.id_mess = tm.id_mess
+    
+    """
+    data, columns = fetch(query)
+    df = pd.DataFrame(data, columns=columns)
+
+    df["tanggal_mulai"] = pd.to_datetime(df["tanggal_mulai"], errors="coerce")
+    df["tanggal_selesai"] = pd.to_datetime(df["tanggal_selesai"], errors="coerce")
+    df["nilai_kontribusi_perbulan"] = pd.to_numeric(df["nilai_kontribusi_perbulan"], errors="coerce").fillna(0)
+
+    return df
+
+# =====================
+def hitung_revenue_tahun(row, tahun):
+    if pd.isna(row["tanggal_mulai"]) or pd.isna(row["tanggal_selesai"]):
+        return 0
+
+    start = max(row["tanggal_mulai"], pd.Timestamp(f"{tahun}-01-01"))
+    end = min(row["tanggal_selesai"], pd.Timestamp(f"{tahun}-12-31"))
+
+    if start > end:
+        return 0
+
+    bulan = (end.year - start.year) * 12 + (end.month - start.month) + 1
+    return bulan * row["nilai_kontribusi_perbulan"]
+
 def show_Mess_Menanggal():
     st.title("🏨Dashboard SPER Mess Menanggal")
 
-# st.title("🏨Dashboard SPER Mess Menanggal")
-# st.set_page_config(layout="wide")
+    # st.title("🏨Dashboard SPER Mess Menanggal")
+    # st.set_page_config(layout="wide")
 
-    # Realtime Tanggal & Waktu
     # ======================
     time_placeholder = st.empty()
     now = datetime.now()
@@ -27,7 +69,6 @@ def show_Mess_Menanggal():
     )
     time.sleep(1)
     
-    #definisi nilai uang
     def format_rupiah(n):
         return f"Rp {n:,.0f}".replace(",", ".")
     def format_rupiah_full(n):
@@ -57,66 +98,64 @@ def show_Mess_Menanggal():
             return val.strftime("%d-%m-%Y")
         except:
             return val
+        
     #===========================
-    #load data
-    df = load_aset_data()
+    df = load_mess_data()
+    df_master_mess = load_master_mess()
+    df_tahun = df.copy()
+    tahun_list = sorted(
+        set(df_tahun["tanggal_mulai"].dt.year.dropna().astype(int)) |
+        set(df_tahun["tanggal_selesai"].dt.year.dropna().astype(int))
+    )
+    df_all_mess = df.copy()
+
     #============================
-    #filter aset
-    df = df[df["jenis_aset"] == "Mess"].copy()
-    
     df_all_mess = load_aset_data()
     df_all_mess = df_all_mess[df_all_mess["jenis_aset"] == "Mess"].copy()
+    
     #=====================
-    #=====================
-    #normalisasi
-    df["nilai"] = pd.to_numeric(df["nilai"], errors="coerce").fillna(0)
+    # df["nilai"] = pd.to_numeric(df["nilai"], errors="coerce").fillna(0)
     # df["nilai_perbulan"] = pd.to_numeric(df["nilai_perbulan"], errors="coerce").fillna(0)
     df["durasi_bulan"] = pd.to_numeric(df["durasi_bulan"], errors="coerce").fillna(0)
     
     # ==========================
-    # Kolom LANTAI (UNTUK CHART)
-    # ==========================
     st.header("Filter Mess Menanggal")
-    j1,j2,j3,j4 = st.columns(4)
-
-    df_filtered = df.copy()  # dataframe setelah filter
-
+    j1, j2, j3, j4 = st.columns(4)
+    df_base = df.copy()
+    
     with j1:
-        tahun_list = sorted(df_filtered["tahun"].dropna().astype(int).unique())
+        tahun_list = sorted(
+            set(df_base["tanggal_mulai"].dt.year.dropna().astype(int)) |
+            set(df_base["tanggal_selesai"].dt.year.dropna().astype(int))
+        )
         tahun = st.multiselect("Tahun SPER", tahun_list)
-        st.session_state["tahun_selected"] = tahun
-        if tahun:
-            df_filtered = df_filtered[df_filtered["tahun"].isin(tahun)]
 
+        if tahun:
+            df_base = df_base[
+                (df_base["tanggal_mulai"].dt.year.isin(tahun)) |
+                (df_base["tanggal_selesai"].dt.year.isin(tahun))
+            ]
+        
     with j2:
-        penyewa_list = sorted(df_filtered["penyewa"].dropna().unique())
+        penyewa_list = sorted(df_base["penyewa"].dropna().unique())
         penyewa = st.multiselect("Penyewa", penyewa_list)
+
         if penyewa:
-            df_filtered = df_filtered[df_filtered["penyewa"].isin(penyewa)]
+            df_base = df_base[df_base["penyewa"].isin(penyewa)]
 
     with j3:
-        status_list = sorted(df_filtered["status_aset"].dropna().unique())
+        status_list = sorted(df_base["status_aset"].dropna().unique())
         status_selected = st.multiselect("Status", status_list)
-        if status_selected:
-            df_filtered = df_filtered[df_filtered["status_aset"].isin(status_selected)]
 
-    with j4:
-        # Lantai & Blok
-        if "keterangan" in df_filtered.columns and not df_filtered.empty:
-            df_filtered["keterangan"] = df_filtered["keterangan"].astype(str)
-            lantai_mapping = {
-                "1": [c for c in "A B C D E F G H".split()] + ["AA","BB","CC","DD","EE","FF","GG","HH"],
-                "2": [f"{c}1" for c in "A B C D E F G H".split()] + ["AA1","BB1","CC1","DD1","EE1","FF1","GG1","HH1"],
-                "3": [f"{c}2" for c in "A B C D E F G H".split()] + ["AA2","BB2","CC2","DD2","EE2","FF2","GG2","HH2"],
-                "4": [f"{c}3" for c in "A B C D E F G H".split()] + ["AA3","BB3","CC3","DD3","EE3","FF3","GG3","HH3"]
-            }
-            lantai_list = sorted(lantai_mapping.keys())
-            lantai_selected = st.multiselect("Lantai", lantai_list)
-            if lantai_selected:
-                kamar_filter = []
-                for l in lantai_selected:
-                    kamar_filter.extend(lantai_mapping[l])
-                df_filtered = df_filtered[df_filtered["keterangan"].isin(kamar_filter)]
+        if status_selected:
+            df_base = df_base[df_base["status_aset"].isin(status_selected)]
+
+    lantai_mapping = {
+        "1": [c for c in "A B C D E F G H".split()] + ["AA","BB","CC","DD","EE","FF","GG","HH"],
+        "2": [f"{c}1" for c in "A B C D E F G H".split()] + ["AA1","BB1","CC1","DD1","EE1","FF1","GG1","HH1"],
+        "3": [f"{c}2" for c in "A B C D E F G H".split()] + ["AA2","BB2","CC2","DD2","EE2","FF2","GG2","HH2"],
+        "4": [f"{c}3" for c in "A B C D E F G H".split()] + ["AA3","BB3","CC3","DD3","EE3","FF3","GG3","HH3"]
+    }
 
     def get_lantai(kamar):
         for lantai, kamar_list in lantai_mapping.items():
@@ -124,36 +163,48 @@ def show_Mess_Menanggal():
                 return lantai
         return "Tidak Diketahui"
 
-    df_filtered["lantai"] = df_filtered["keterangan"].astype(str).apply(get_lantai)
+    df_base["lantai"] = df_base["keterangan"].astype(str).apply(get_lantai)
 
+    with j4:
+        lantai_list = sorted(df_base["lantai"].unique())
+        lantai_selected = st.multiselect("Lantai", lantai_list)
+
+        if lantai_selected:
+            df_base = df_base[df_base["lantai"].isin(lantai_selected)]
+
+    # =========================
+    df_filtered = df_base.copy()
+    
     #=====================
-    #data_sper nomor_surat
     df_sper_valid = df[
         df["nomor_surat"].notna() &
         (df["nomor_surat"].str.strip() != " ") &
         (df["nomor_surat"].str.strip() != "") &
         (df["nomor_surat"].str.strip() != "-")     
     ].copy()
+
     # ==========================
-    # inisialisasi tahun saat ini
-    current_year = datetime.now().year
-    selected_year = st.session_state.get("tahun_selected")
+    tahun_dashboard = tahun[0] if tahun else datetime.now().year
+    df_filtered["revenue_tahun"] = df_filtered.apply(
+        lambda r: hitung_revenue_tahun(r, tahun_dashboard), axis=1
+    )
+    df_filtered = df_filtered[df_filtered["revenue_tahun"] > 0]
 
-    if selected_year and len(selected_year) > 0:
-        df_chart = df_sper_valid[df_sper_valid["tahun"].isin(selected_year)].copy()
-    else:
-        # default: tahun saat ini
-        df_chart = df_sper_valid[df_sper_valid["tahun"] == current_year].copy()
+    # if selected_year and len(selected_year) > 0:
+    #     df_chart = df_sper_valid[df_sper_valid["tahun"].isin(selected_year)].copy()
+    # else:
+    #     # default: tahun saat ini
+    #     df_chart = df_sper_valid[df_sper_valid["tahun"] == current_year].copy()
 
-    if df_chart.empty:
+    if df_filtered.empty:
         st.warning("Tidak ada data SPER untuk tahun yang dipilih")
         st.stop()
+    
     #=====================
-    # KPI Metrics
-    total_sper = df_chart["nomor_surat"].nunique()
-    total_nilai = df_chart["nilai"].sum()
+    total_sper = df_filtered["kode_aset"].nunique()
+    total_nilai = df_filtered["revenue_tahun"].sum()
     total_mess = df_all_mess["kode_aset"].nunique()
-    rata_nilai = df_chart["nilai"].mean()
+    rata_nilai = df_filtered["revenue_tahun"].mean()
 
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Total SPER", total_sper)
@@ -163,15 +214,24 @@ def show_Mess_Menanggal():
     st.caption(f"Nilai sebenarnya: {format_rupiah_full(total_nilai)}")
 
     st.divider()    
+    
     # ==================
-    #chart durasi
     st.subheader("Tren Nilai Kontribusi SPER per Tahun")
-    trend = (
-        df_sper_valid
-        .groupby("tahun", as_index=False)
-        .agg(total_nilai=("nilai","sum"))
-        .sort_values("tahun")
-    )
+    if df["tanggal_mulai"].notna().any():
+        start_year = int(df["tanggal_mulai"].dt.year.dropna().min())
+    else:
+        start_year = datetime.now().year
+
+    current_year = datetime.now().year
+    years = list(range(start_year, current_year + 1))
+    trend_list = []
+
+    for y in years:
+        temp = df.copy()
+        temp["rev"] = temp.apply(lambda r: hitung_revenue_tahun(r, y), axis=1)
+        trend_list.append({"tahun": y, "total_nilai": temp["rev"].sum()})
+
+    trend = pd.DataFrame(trend_list)
 
     fig_line = px.line(
         trend,
@@ -196,13 +256,102 @@ def show_Mess_Menanggal():
     fig_line.update_yaxes(tickformat=",")
     st.plotly_chart(fig_line, width="stretch")
     st.divider()
-
+    
     #=================
-    #Distribusi Bar chart dan pie chart
+    top_penyewa=(
+        df_filtered
+        .groupby("penyewa")["revenue_tahun"]
+        .sum()
+        .reset_index()
+        .sort_values("revenue_tahun", ascending=True)
+        .head(10)
+    )
+    top_penyewa["label_nilai"] = top_penyewa["revenue_tahun"].apply(label_nilai_id)
+    top_penyewa["tooltip_nilai"] = top_penyewa["revenue_tahun"].apply(format_rupiah_full)
+    
+    # fig_penyewa = px.bar(
+    #     top_penyewa,
+    #     x="nilai",
+    #     y="penyewa",
+    #     orientation="h",
+    #     text="label_nilai",
+    #     labels={
+    #         "nilai": "Nilai Kontribusi (Rp)",
+    #         "penyewa": "Penyewa"
+    #     }
+    # )
+    # fig_penyewa.update_traces(
+    #     textposition="outside",
+    #     hovertemplate=
+    #         "<b>Penyewa</b>: %{y}<br>" +
+    #         "<b>Nilai Kontribusi</b>: %{customdata}<extra></extra>",
+    #     customdata=top_penyewa["tooltip_nilai"]
+    # )
+    # fig_penyewa.update_xaxes(
+    #     tickformat=","
+    # )
+    # fig_penyewa.update_layout(height=480)
+    # st.plotly_chart(fig_penyewa, width="stretch")
+    # barchart lantai
+
+    # ================
+    st.subheader("Distribusi SPER per Lantai Mess Menanggal")
+    df_filtered["lantai"] = df_filtered["keterangan"].astype(str).apply(get_lantai)
+    
+    df_lantai = df_filtered[
+        (df_filtered["nomor_surat"].notna()) &
+        (df_filtered["nomor_surat"].str.strip() != "")
+    ].copy()
+
+    df_lantai["revenue_tahun"] = df_lantai.apply(lambda r: hitung_revenue_tahun(r, tahun_dashboard), axis=1)
+    df_lantai = df_lantai[df_lantai["revenue_tahun"] > 0]
+
+    lantai_dist = (
+        df_lantai
+        .groupby("lantai", as_index=False)
+        .agg(
+            total_nilai=("revenue_tahun", "sum"),
+            jumlah_sper=("nomor_surat", "nunique")
+        )
+        .sort_values("lantai", ascending=False)
+    )
+
+    top_penyewa["label_nilai"] = top_penyewa["revenue_tahun"].apply(label_nilai_id)
+    top_penyewa["tooltip_nilai"] = top_penyewa["revenue_tahun"].apply(format_rupiah_full)
+    
+    fig_lantai = px.bar(
+        lantai_dist,
+        x="lantai",
+        y="total_nilai",
+        labels={
+            "lantai": "Lantai",
+            "total_nilai": "Nilai Kontribusi (Rp)"
+        },
+        custom_data=["jumlah_sper"]
+    )
+    fig_lantai.update_traces(
+        texttemplate="Rp %{y:,.0f}",     
+        textposition="outside",
+        hovertemplate=
+            "<b>Lantai</b>: %{x}<br>"
+            "<b>Jumlah SPER</b>: %{customdata[0]}<br>"
+            "<b>Nilai Kontribusi</b>: Rp %{y:,.0f}<extra></extra>"
+    )
+    fig_lantai.update_xaxes(
+        tickmode="linear",
+        tickformat="d"
+    )
+    fig_lantai.update_yaxes(tickformat=",")
+    fig_lantai.update_layout(height=450)
+    st.plotly_chart(fig_lantai, width="stretch")
+
+    st.divider()
+    
+    # =================================
     st.subheader("Distribusi SPER Terhadap Lokasi Unit Kerja Penyewa dan Proporsi Kondisi Aset")
     
     unit_kerja = (
-        df_chart
+        df_filtered
         .groupby("lokasi")["nomor_surat"]
         .size()
         .reset_index(name="jumlah_sper")
@@ -225,20 +374,44 @@ def show_Mess_Menanggal():
     )
     fig_bar.update_layout(height=550)
     
+    # ==============================
+    df_status = df_master_mess.copy()
+    start_year = pd.Timestamp(f"{tahun_dashboard}-01-01")
+    end_year = pd.Timestamp(f"{tahun_dashboard}-12-31")
+    
+    df_sewa_tahun = df[
+        (df["tanggal_mulai"] <= end_year) &
+        (df["tanggal_selesai"] >= start_year)
+    ].copy()
 
-    # pie chart
-    status_count = df_chart["status_aset"].value_counts().reset_index()
-    status_count.columns = ["status_aset", "Jumlah"]
+    if penyewa:
+        df_sewa_tahun = df_sewa_tahun[df_sewa_tahun["penyewa"].isin(penyewa)]
+
+    if lantai_selected:
+        df_sewa_tahun["lantai"] = df_sewa_tahun["keterangan"].astype(str).apply(get_lantai)
+        df_sewa_tahun = df_sewa_tahun[df_sewa_tahun["lantai"].isin(lantai_selected)]
+
+    kamar_disewa = df_sewa_tahun["kode_aset"].unique()
+    df_status["status_tahun"] = df_status["kode_mess"].apply(
+        lambda x: "Disewa" if x in kamar_disewa else df_status.loc[df_status["kode_mess"] == x, "status_aset"].values[0]
+    )
+    status_count = (
+        df_status
+        .groupby("status_tahun")
+        .size()
+        .reset_index(name="Jumlah")
+    )
     fig_status = px.pie(
         status_count,
-        names="status_aset",
+        names="status_tahun",
         values="Jumlah",
-        title="Proporsi Kondisi Aset Mess Menanggal"
+        title=f"Proporsi Kondisi Aset Mess Tahun {tahun_dashboard}"
     )
     fig_status.update_traces(
         textinfo="percent+label",
         hovertemplate="Status Aset: %{label}<br>Jumlah: %{value}<extra></extra>"
     )
+    fig_status.update_layout(height=550)
 
     c5, c6 = st.columns([1.8,1])
     with c5:
@@ -247,120 +420,17 @@ def show_Mess_Menanggal():
         st.plotly_chart(fig_status, width="stretch")
         
     st.divider()
-
-    # ====================
-    # top penyewa
-    # ====================
-    # current_year = datetime.now().year
-
-    # if "tahun" in df.columns:
-    #     selected_year = st.session_state.get("tahun_selected")
-    # else:
-    #     selected_year=None   
-
-    # if not selected_year:
-    #     df_chart = df_sper_valid[df_sper_valid["tahun"] == current_year].copy()
-    # else: 
-    #     df_chart = df_sper_valid[df_sper_valid["tahun"].isin(selected_year)].copy()   
     
-    st.subheader("Penyewa SPER Berdasarkan Nilai Kontribusi")
-    top_penyewa=(
-        df_chart
-        .groupby("penyewa")["nilai"]
-        .sum()
-        .reset_index()
-        .sort_values("nilai", ascending=True)
-        .head(10)
-    )
-    top_penyewa["label_nilai"] = top_penyewa["nilai"].apply(label_nilai_id)
-    top_penyewa["tooltip_nilai"] = top_penyewa["nilai"].apply(format_rupiah_full)
-    fig_penyewa = px.bar(
-        top_penyewa,
-        x="nilai",
-        y="penyewa",
-        orientation="h",
-        text="label_nilai",
-        labels={
-            "nilai": "Nilai Kontribusi (Rp)",
-            "penyewa": "Penyewa"
-        }
-    )
-    fig_penyewa.update_traces(
-        textposition="outside",
-        hovertemplate=
-            "<b>Penyewa</b>: %{y}<br>" +
-            "<b>Nilai Kontribusi</b>: %{customdata}<extra></extra>",
-        customdata=top_penyewa["tooltip_nilai"]
-    )
-    fig_penyewa.update_xaxes(
-        tickformat=","
-    )
-    fig_penyewa.update_layout(height=480)
-    st.plotly_chart(fig_penyewa, width="stretch")
-    # ======================
-    # barchart lantai
-    # ======================
-    st.subheader("Distribusi SPER per Lantai Mess Menanggal")
-
-    df_filtered["lantai"] = df_filtered["keterangan"].astype(str).apply(get_lantai)
-    
-    df_lantai = df_filtered[
-        (df_filtered["nomor_surat"].notna()) &
-        (df_filtered["nomor_surat"].str.strip() != "") &
-        ((df_filtered["tahun"].isin(selected_year)) if selected_year else (df_filtered["tahun"] == current_year))
-    ]
-
-    lantai_dist = (
-        df_lantai
-        .groupby("lantai", as_index=False)
-        .agg(
-            total_nilai=("nilai", "sum"),
-            jumlah_sper=("nomor_surat", "nunique")
-        )
-        .sort_values("lantai", ascending=False)
-    )
-    top_penyewa["label_nilai"] = top_penyewa["nilai"].apply(label_nilai_id)
-    top_penyewa["tooltip_nilai"] = top_penyewa["nilai"].apply(format_rupiah_full)
-    
-    fig_lantai = px.bar(
-        lantai_dist,
-        x="lantai",
-        y="total_nilai",
-        labels={
-            "lantai": "Lantai",
-            "nilai": "Nilai Kontribusi (Rp)"
-        },
-        custom_data=["jumlah_sper"]
-    )
-    fig_lantai.update_traces(
-        texttemplate="Rp %{y:,.0f}",     
-        textposition="outside",
-        hovertemplate=
-            "<b>Lantai</b>: %{x}<br>"
-            "<b>Jumlah SPER</b>: %{customdata[0]}<br>"
-            "<b>Nilai Kontribusi</b>: Rp %{y:,.0f}<extra></extra>"
-    )
-    fig_lantai.update_xaxes(
-        tickmode="linear",
-        tickformat="d"
-    )
-    fig_lantai.update_yaxes(tickformat=",")
-    fig_lantai.update_layout(height=450)
-    st.plotly_chart(fig_lantai, width="stretch")
-
-    st.divider()
     # ==================================
-    # distribusi tiap lantai pada unit kerja
-    #Tampil Data Tabel
-    df = df.reset_index(drop=True)
-    df.index = df.index + 1
-    df["nilai_rupiah"] = df["nilai"].apply(format_rupiah)
+    df_filtered = df_filtered.reset_index(drop=True)
+    df_filtered.index = df_filtered.index + 1
+    df_filtered["nilai_rupiah"] = df_filtered["revenue_tahun"].apply(format_rupiah)
 
     st.subheader("📋Detail SPER Mess Menanggal")
-    df["tanggal_mulai_tgl"] = df["tanggal_mulai"].apply(format_tanggal_indo)
-    df["tanggal_selesai_tgl"] = df["tanggal_selesai"].apply(format_tanggal_indo)
+    df_filtered["tanggal_mulai_tgl"] = df_filtered["tanggal_mulai"].apply(format_tanggal_indo)
+    df_filtered["tanggal_selesai_tgl"] = df_filtered["tanggal_selesai"].apply(format_tanggal_indo)
     st.dataframe(
-        df[[
+        df_filtered[[
             "nomor_surat",
             "kode_aset",
             "penyewa",
