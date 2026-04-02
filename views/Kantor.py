@@ -332,7 +332,7 @@ def show_Kantor():
             "luas_m2": "Luas (m²)",
             "penyewa": "Penyewa",
             "pic_num": "PIC",
-            "nilai_rupiah": "Nilai Kontribusi",
+            "nilai_rupiah": "Nilai Kontribusi Pertahun (Rp)",
             "tanggal_mulai": "Tanggal Mulai",
             "tanggal_selesai": "Tanggal Selesai",
             "status_aset": "Status"

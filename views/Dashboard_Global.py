@@ -2,13 +2,14 @@ import streamlit as st
 import plotly.express as px
 import pandas as pd
 from data_loader import load_aset_data
+from data_loader import load_master_penghapusbukuan_aset
 from filters import apply_global_filters
 from datetime import datetime
 import time
 import folium 
 from streamlit_folium import st_folium
 from maps.leaflet_maps import render_map
-
+from maps.leaflet_maps_areaPAL import render_map_area_PAL
 
 
 def show_Dashboard_Global():
@@ -62,6 +63,18 @@ def show_Dashboard_Global():
             range=[0, max_val * 1.2 if max_val > 0 else 1],
             tickformat=","
         )
+
+    # def warna_progres(val):
+    #     val = str(val).strip().lower()
+
+    #     if val == "belum" :
+    #         return "background-color:#FF0900; color:white; text-align:center; font-weight:bold;"
+    #     elif val == "proses" :
+    #         return "background-color:#FFCA09; color:white; text-align:center; font-weight:bold;"
+    #     elif val == "selesai" :
+    #         return "background-color:#12D200; color:white; text-align:center; font-weight:bold;"
+    #     else :
+    #         return ""
 
     # ======================
     df = load_aset_data()
@@ -169,8 +182,8 @@ def show_Dashboard_Global():
     df_metric = df_summary.copy()
     sper_per_aset = (
         df_metric
-        .groupby("jenis_aset")["nomor_surat"]
-        .size()
+        .groupby("jenis_aset")["kode_aset"]
+        .nunique()
     )
 
     total_sper = int(sper_per_aset.sum())
@@ -191,9 +204,171 @@ def show_Dashboard_Global():
     c7.metric("SPER Lahan", int(sper_per_aset.get("Lahan", 0)))
     c8.metric("SPER Mess Menanggal", int(sper_per_aset.get("Mess", 0)))
     st.divider()
+    
+    # =======================
+    if 'map_mode' not in st.session_state:
+        st.session_state.map_mode = "pendayagunaan aset"
 
-    render_map(df_chart)
+    col1, col2 = st.columns(2)
 
+    with col1:
+        if st.button(
+            "Peta Pendayagunaan Aset",
+            use_container_width=True
+        ):
+            st.session_state.map_mode = "pendayagunaan aset"
+
+    with col2:
+        if st.button(
+            "Peta Penghapusbukuan Aset",
+            use_container_width=True
+        ):
+            st.session_state.map_mode = "penghapusan aset"
+
+    # st.subheader("Peta Sebaran Aset dengan SPER")
+    if st.session_state.map_mode == "pendayagunaan aset":
+        render_map()
+        
+    elif st.session_state.map_mode == "penghapusan aset":
+        render_map_area_PAL()
+    
+    st.info(f"Mode Peta Aktif : **{st.session_state.map_mode.capitalize()}**")
+    st.divider()
+    # =======================
+    st.subheader("📋 Detail Data Penghapusbukuan Aset")
+    df_penghapusbukuan_aset = load_master_penghapusbukuan_aset()
+    df_penghapusbukuan = df_penghapusbukuan_aset[[
+        "nama_aset", "ppa", "penerbitan_lhpb", "kajian_manrisk_legal",
+        "review_div_otb", "approval_im4_kajian_penghapusbukuan",
+        "verbal_surat_dirut", "rekom_persetujuan_komisaris",
+        "persetujuan_fidusia", "persetujuan_rups",
+        "skep_penghapusbukuan", "penjualan_pemindahtanganan_aset", "keterangan"
+    ]].rename(columns={
+        "nama_aset": "Nama Aset",
+        "ppa": "PPA (Permohonan Penghapusan Aset)",
+        "penerbitan_lhpb": "Penerbitan LHPB",
+        "kajian_manrisk_legal": "Kajian Manajemen Risiko dan Legal",
+        "review_div_otb": "Review Divisi Office Of The Board",
+        "approval_im4_kajian_penghapusbukuan": "Approval IM4 Kajian Penghapusbukuan",
+        "verbal_surat_dirut": "Verbal Surat Direktur Utama kepada Dewan Komisaris",
+        "rekom_persetujuan_komisaris": "Rekomendasi / Persetujuan Dewan Komisaris",
+        "persetujuan_fidusia": "Persetujuan Fidusia (Optional)",
+        "persetujuan_rups": "Persetujuan RUPS",
+        "skep_penghapusbukuan": "SKEP Penghapusbukuan Aset",
+        "penjualan_pemindahtanganan_aset": "Penjualan / Pemindahtanganan Aset",
+        "keterangan": "Keterangan"
+    })
+
+    st.markdown("""
+    <style>
+        /* 1. Atur container utama agar selaras dengan konten lain */
+        .block-container {
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+            padding-left: 3rem; /* Memberikan jarak tepi kiri */
+            padding-right: 3rem; /* Memberikan jarak tepi kanan */
+            max-width: 100% !important;
+            padding: 1.5rem !important;
+            max-width: 100% !important;
+        }
+
+        /* 2. Pembungkus Tabel dengan batas lebar maksimal agar tidak meluap */
+        .table-container {
+            width: 100%;
+            max-width: 1200px; /* Sesuaikan dengan lebar rata-rata chart Anda */
+            margin: 0 auto; /* Menengahkan tabel */
+            overflow-x: auto; /* Scrollbar horizontal muncul hanya jika diperlukan */
+            border: 1px solid #e6e9ef;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            background-color: white;
+            padding: 10px;
+        }
+        
+        /* 3. Gaya Tabel Custom */
+        .custom-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: clamp(6px, 0.7vw, 11px);
+            font-family: 'Inter', sans-serif;
+            table-layout: fixed; /* Kolom menyesuaikan isi secara cerdas */
+        }
+        
+        .custom-table th {
+            background-color: #f8f9fa;
+            color: #31333F;
+            font-weight: 600;
+            text-align: center !important;
+            vertical-align: middle !important;
+            padding: 12px 8px !important;
+            border-bottom: 2px solid #dee2e6;
+            white-space: normal !important; /* Wrap text untuk judul kolom yang panjang */
+            line-height: 1.2;
+        }
+
+        .custom-table td {
+            padding: 4px 3px;
+            border-bottom: 1px solid #f0f2f6;
+            vertical-align: middle;
+            text-align: center;
+        }
+
+        /* Kolom Nama Aset dibuat lebih lebar dan rata kiri */
+        .custom-table td:nth-child(2) {
+            text-align: left !important;
+            min-width: 100px;
+            font-weight: 600;
+        }
+
+        /* Gaya Badge Status agar lebih kecil dan rapi */
+        .badge-status {
+            display: inline-block;
+            padding: 2px 0px;
+            width: 30px; /* Lebar tetap agar seragam */
+            border-radius: 4px;
+            color: black;
+            font-weight: bold;
+            font-size: 15px;
+            text-align: center;
+        }
+        .badge-status-selesai {
+            display: inline-block;
+            padding: 2px 0px;
+            width: 30px; /* Lebar tetap agar seragam */
+            border-radius: 4px;
+            color: white;
+            font-weight: bold;
+            font-size: 15px;
+            text-align: center;
+        }
+        .bg-selesai { background-color: #12D200; }
+        .bg-proses { background-color: #FFCA09; }
+        .bg-belum { background-color: #FF0900; }
+    </style>
+    """, unsafe_allow_html=True)
+
+    def make_pretty(val):
+        v = str(val).strip().lower()
+        if v == 'selesai': return f'<div class="badge-status-selesai bg-selesai">✔</div>'
+        if v == 'proses': return f'<div class="badge-status bg-proses">🛠</div>'
+        if v == 'belum': return f'<div class="badge-status bg-belum">⏳</div>'
+        return val if not pd.isna(val) and val != "None" else ""
+    
+
+    kolom_status = df_penghapusbukuan.columns[1:-1] 
+    df_html = df_penghapusbukuan.copy()
+    for col in kolom_status:
+        df_html[col] = df_html[col].apply(make_pretty)
+
+    df_html.index = range(1, len(df_html) + 1)
+    df_html = df_html.reset_index().rename(columns={'index': 'No'})
+    
+    html_string = df_html.to_html(escape=False, index=False, classes='custom-table')
+    st.markdown(f'<div class="table-wrapper">{html_string}</div>', unsafe_allow_html=True)
+    
+    st.divider()
+
+    # =======================
     st.subheader("Tren Nilai Kontribusi SPER per Tahun")
     trend = (
         df_chart
@@ -402,7 +577,16 @@ def show_Dashboard_Global():
         return mapping.get(text, text.title())
 
     # ============================
-    st.subheader("Proporsi SPER Aset dan Kondisi Aset")
+    st.subheader("Distribusi Kondisi Aset")
+
+    from data_loader import (
+        load_master_rumdin,
+        load_master_kantor,
+        load_master_kontainer,
+        load_master_lahan,
+        load_master_mess
+    )
+
     urutan_aset = [
         "Rumah Dinas",
         "Kantor",
@@ -410,50 +594,62 @@ def show_Dashboard_Global():
         "Lahan",
         "Mess"
     ]
+
     urutan_status = [
         "Kosong",
         "Disewa",
         "Internal",
-        "Perbaikan",
-        "Tidak Aktif"
+        "Tidak Aktif",
+        "Perbaikan"
     ]
-    df_status_raw = df_chart.copy()
-    df_status_raw = df_status_raw.drop_duplicates(subset=["kode_aset"])
 
-    df_status_raw["status_aset"] = df_status_raw["status_aset"].apply(normalize_status)
+    df_rumdin = load_master_rumdin()
+    df_rumdin["jenis_aset"] = "Rumah Dinas"
+    df_rumdin = df_rumdin.rename(columns={"kode_rumdin": "kode_aset"})
 
-    if jenis_selected:
-        df_status_raw = df_status_raw[
-            df_status_raw["jenis_aset"].isin(jenis_selected)
-        ]
+    df_kantor = load_master_kantor()
+    df_kantor["jenis_aset"] = "Kantor"
+    df_kantor = df_kantor.rename(columns={"kode_kantor": "kode_aset"})
 
-    df_status_raw["status_aset"] = (
-        df_status_raw["status_aset"]
-        .apply(normalize_status)
+    df_kontainer = load_master_kontainer()
+    df_kontainer["jenis_aset"] = "Kontainer"
+    df_kontainer = df_kontainer.rename(columns={"kode_kontainer": "kode_aset"})
+
+    df_lahan = load_master_lahan()
+    df_lahan["jenis_aset"] = "Lahan"
+    df_lahan = df_lahan.rename(columns={"kode_lahan": "kode_aset"})
+
+    df_mess = load_master_mess()
+    df_mess["jenis_aset"] = "Mess"
+    df_mess = df_mess.rename(columns={"kode_mess": "kode_aset"})
+
+    df_master = pd.concat(
+        [df_rumdin, df_kantor, df_kontainer, df_lahan, df_mess],
+        ignore_index=True
     )
 
+    df_master["status_aset"] = df_master["status_aset"].apply(normalize_status)
+
+    if jenis_selected:
+        df_master = df_master[df_master["jenis_aset"].isin(jenis_selected)]
+
     summary = (
-        df_status_raw
+        df_master
         .groupby(["jenis_aset", "status_aset"])
         .size()
         .reset_index(name="jumlah")
     )
 
-    # ===============================
-    all_jenis = df_status_raw["jenis_aset"].unique()
-    all_status = ["Kosong", "Disewa", "Internal", "Perbaikan", "Tidak Aktif"]
-
     index_full = pd.MultiIndex.from_product(
-        [df_status_raw["jenis_aset"].unique(), all_status],
+        [urutan_aset, urutan_status],
         names=["jenis_aset", "status_aset"]
     )
 
     summary = (
-        df_status_raw
-        .groupby(["jenis_aset", "status_aset"])
-        .size()
+        summary
+        .set_index(["jenis_aset", "status_aset"])
         .reindex(index_full, fill_value=0)
-        .reset_index(name="jumlah")
+        .reset_index()
     )
 
     summary["jenis_aset"] = pd.Categorical(
@@ -468,14 +664,17 @@ def show_Dashboard_Global():
         ordered=True
     )
 
+    summary = summary.sort_values(["jenis_aset", "status_aset"])
+
     # ===========================
     c11,c12 = st.columns([1,1.3])
     with c11:
         df_jenis_count = (
             df_chart
-            .groupby("jenis_aset", as_index=False)
-            .size()
-            .rename(columns={"size": "jumlah_sper"})
+            .drop_duplicates(subset=["kode_aset"])
+            .groupby("jenis_aset", as_index=False)["kode_aset"]
+            .nunique()
+            .rename(columns={"kode_aset": "jumlah_sper"})
         )
         urutan_aset = [
             "Rumah Dinas",
@@ -511,7 +710,7 @@ def show_Dashboard_Global():
                 "<b>Jenis Aset</b>: %{label}<br>" +
                 "<b>Jumlah</b>: %{value}<extra></extra>"
         )
-        fig_pie.update_layout(height=500)
+        fig_pie.update_layout(height=620)
         st.plotly_chart(fig_pie, width="stretch")
 
     with c12:
@@ -528,13 +727,7 @@ def show_Dashboard_Global():
             },
             category_orders={
                 "jenis_aset": urutan_aset,
-                "status_aset": [
-                    "Kosong",
-                    "Disewa",
-                    "Internal",
-                    "Tidak Aktif",
-                    "Perbaikan"
-                ]
+                "status_aset": urutan_status
             },
             title="Distribusi Kondisi Aset"
         )
@@ -546,9 +739,10 @@ def show_Dashboard_Global():
                 "<b>Status</b>: %{fullData.name}<br>"
                 "<b>Jumlah</b>: %{y}<extra></extra>"
         )
+
         fig_status.update_layout(
             barmode="stack",
-            height=560,
+            height=620,
             legend_title_text="Status Aset"
         )
 
@@ -556,5 +750,5 @@ def show_Dashboard_Global():
             categoryorder="array",
             categoryarray=urutan_aset
         )
-        fig_status.update_layout(height=500)
+
         st.plotly_chart(fig_status, width="stretch")

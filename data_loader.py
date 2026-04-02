@@ -9,10 +9,59 @@ def extract_year_from_nomor_surat(nomor):
     match = re.search(r"(20\d{2})", str(nomor))
     return int(match.group(1)) if match else None
 
+def load_master_lokasi():
+    query = """
+        SELECT id_lokasi, nama_lokasi, foto_lokasi, lat, lon
+        FROM master_lokasi
+    """
+    data, columns = fetch(query)
+    return pd.DataFrame(data, columns=columns)
+
+def load_master_lokasi_penghapusbukuan():
+    query = """
+        SELECT 
+            a.id_lokasi_aset, 
+            a.id_aset, 
+            a.lokasi_aset, 
+            a.nama_aset, 
+            b.nama_aset AS nama_aset_penghapusbukuan,
+            a.foto_lokasi, 
+            a.lat, 
+            a.lon,
+
+            -- TAMBAHAN PROGRESS
+            b.ppa,
+            b.penerbitan_lhpb,
+            b.kajian_manrisk_legal,
+            b.review_div_otb,
+            b.approval_im4_kajian_penghapusbukuan,
+            b.verbal_surat_dirut,
+            b.rekom_persetujuan_komisaris,
+            b.persetujuan_fidusia,n
+            b.persetujuan_rups,
+            b.skep_penghapusbukuan,
+            b.penjualan_pemindahtanganan_aset,
+            b.keterangan
+
+        FROM master_lokasi_penghapusbukuan a
+        JOIN penghapusbukuan_aset b 
+        ON a.id_aset = b.id_aset
+    """
+    data, columns = fetch(query)
+    df = pd.DataFrame(data, columns=columns)
+
+    df = df.rename(columns={
+        "id_lokasi_aset": "id_lokasi",
+        "lokasi_aset": "nama_lokasi"
+    })
+
+    df = df.dropna(subset=["lat", "lon"])
+    return df
+
 def load_master_rumdin():
     query = """
     SELECT 
-        kode_rumdin, status_aset
+        kode_rumdin, id_lokasi, alamat, status_aset
     FROM master_rumdin
     """
     data, columns = fetch(query)
@@ -22,7 +71,7 @@ def load_master_rumdin():
 def load_master_kontainer():
     query = """
     SELECT 
-        kode_kontainer, status_aset
+        kode_kontainer, id_lokasi, lokasi, status_aset
     FROM master_kontainer
     """
     data, columns = fetch(query)
@@ -32,7 +81,7 @@ def load_master_kontainer():
 def load_master_lahan():
     query = """
     SELECT 
-        kode_lahan, status_aset
+        kode_lahan, id_lokasi, lokasi, status_aset
     FROM master_lahan
     """
     data, columns = fetch(query)
@@ -42,7 +91,7 @@ def load_master_lahan():
 def load_master_mess():
     query = """
     SELECT 
-        kode_mess, status_aset
+        kode_mess, id_lokasi, status_aset
     FROM master_mess
     """
     data, columns = fetch(query)
@@ -53,9 +102,32 @@ def load_master_kantor():
     query = """
     SELECT
         kode_kantor,
+        id_lokasi,
         lokasi,
         status_aset
     FROM master_kantor
+    """
+    data, columns = fetch(query)
+    return pd.DataFrame(data, columns=columns)
+
+def load_master_penghapusbukuan_aset():
+    query = """
+    SELECT
+        id_aset,
+        nama_aset,
+        ppa,
+        penerbitan_lhpb,
+        kajian_manrisk_legal,
+        review_div_otb,
+        approval_im4_kajian_penghapusbukuan,
+        verbal_surat_dirut,
+        rekom_persetujuan_komisaris,
+        persetujuan_fidusia,
+        persetujuan_rups,
+        skep_penghapusbukuan,
+        penjualan_pemindahtanganan_aset,
+        keterangan
+    FROM penghapusbukuan_aset
     """
     data, columns = fetch(query)
     return pd.DataFrame(data, columns=columns)

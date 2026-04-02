@@ -125,8 +125,8 @@ def show_Mess_Menanggal():
     
     with j1:
         tahun_list = sorted(
-            set(df_base["tanggal_mulai"].dt.year.dropna().astype(int)) |
-            set(df_base["tanggal_selesai"].dt.year.dropna().astype(int))
+            set(df["tanggal_mulai"].dt.year.dropna().astype(int)) |
+            set(df["tanggal_selesai"].dt.year.dropna().astype(int))
         )
         tahun = st.multiselect("Tahun SPER", tahun_list)
 
@@ -176,19 +176,19 @@ def show_Mess_Menanggal():
     df_filtered = df_base.copy()
     
     #=====================
-    df_sper_valid = df[
-        df["nomor_surat"].notna() &
-        (df["nomor_surat"].str.strip() != " ") &
-        (df["nomor_surat"].str.strip() != "") &
-        (df["nomor_surat"].str.strip() != "-")     
-    ].copy()
+    # df_sper_valid = df[
+    #     df["nomor_surat"].notna() &
+    #     (df["nomor_surat"].str.strip() != " ") &
+    #     (df["nomor_surat"].str.strip() != "") &
+    #     (df["nomor_surat"].str.strip() != "-")     
+    # ].copy()
 
     # ==========================
     tahun_dashboard = tahun[0] if tahun else datetime.now().year
     df_filtered["revenue_tahun"] = df_filtered.apply(
         lambda r: hitung_revenue_tahun(r, tahun_dashboard), axis=1
     )
-    df_filtered = df_filtered[df_filtered["revenue_tahun"] > 0]
+    df_filtered = df_filtered[df_filtered["revenue_tahun"] > 0].copy()
 
     # if selected_year and len(selected_year) > 0:
     #     df_chart = df_sper_valid[df_sper_valid["tahun"].isin(selected_year)].copy()
@@ -200,10 +200,16 @@ def show_Mess_Menanggal():
         st.warning("Tidak ada data SPER untuk tahun yang dipilih")
         st.stop()
     
+    df_sper_valid = df_filtered[
+        df_filtered["nomor_surat"].notna() &
+        (df_filtered["nomor_surat"].str.strip() != "") &
+        (df_filtered["nomor_surat"].str.strip() != "-")
+    ].copy()
+
     #=====================
     total_sper = df_filtered["kode_aset"].nunique()
     total_nilai = df_filtered["revenue_tahun"].sum()
-    total_mess = df_all_mess["kode_aset"].nunique()
+    total_mess = df_master_mess["kode_mess"].nunique()
     rata_nilai = df_filtered["revenue_tahun"].mean()
 
     c1, c2, c3, c4 = st.columns(4)
@@ -255,6 +261,7 @@ def show_Mess_Menanggal():
     )
     fig_line.update_yaxes(tickformat=",")
     st.plotly_chart(fig_line, width="stretch")
+
     st.divider()
     
     #=================
@@ -376,13 +383,15 @@ def show_Mess_Menanggal():
     
     # ==============================
     df_status = df_master_mess.copy()
-    start_year = pd.Timestamp(f"{tahun_dashboard}-01-01")
-    end_year = pd.Timestamp(f"{tahun_dashboard}-12-31")
+    # start_year = pd.Timestamp(f"{tahun_dashboard}-01-01")
+    # end_year = pd.Timestamp(f"{tahun_dashboard}-12-31")
     
-    df_sewa_tahun = df[
-        (df["tanggal_mulai"] <= end_year) &
-        (df["tanggal_selesai"] >= start_year)
-    ].copy()
+    # df_sewa_tahun = df[
+    #     (df["tanggal_mulai"] <= end_year) &
+    #     (df["tanggal_selesai"] >= start_year)
+    # ].copy()
+
+    df_sewa_tahun = df_filtered.copy()
 
     if penyewa:
         df_sewa_tahun = df_sewa_tahun[df_sewa_tahun["penyewa"].isin(penyewa)]
@@ -448,7 +457,7 @@ def show_Mess_Menanggal():
             "lokasi": "Unit Kerja",
             "keterangan": "Blok Kamar",
             "durasi_bulan": "Durasi Sewa",
-            "nilai_rupiah": "Nilai Kontribusi (Rp)",
+            "nilai_rupiah": "Nilai Kontribusi Pertahun (Rp)",
             "tanggal_mulai_tgl": "Tanggal Mulai",
             "tanggal_selesai_tgl": "Tanggal Selesai",
             "status_aset": "Status"

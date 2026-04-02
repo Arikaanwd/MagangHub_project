@@ -121,23 +121,10 @@ def show_Kontainer():
     total_kontainer = len(df_filtered)
     total_nilai = df_filtered["nilai"].sum()
 
-    df_filtered["volume_feet_median"] = (
-        df_filtered["volume_feet"]
-        .dropna()
-        .replace(0, pd.NA)
-    )
-    df_filtered["luas_m2_median"] = (
-        df_filtered["luas_m2"]
-        .dropna()
-        .replace(0, pd.NA)
-    )
-    rata_volume_feet = df_filtered["volume_feet_median"].mode().iloc[0]
-    rata_luas_m2 = df_filtered["luas_m2_median"].mode().iloc[0]
-
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Total SPER", int(total_kontainer))
-    c2.metric("Rata-rata Volume (Feet)", round(rata_volume_feet, 2))
-    c3.metric("Rata-rata Luas (m²)", round(rata_luas_m2, 2))
+    c2.metric("SPER Unit 20FT", int((df_filtered["volume_feet"] == 20).sum()))
+    c3.metric("SPER Unit 40FT", int((df_filtered["volume_feet"] == 40).sum()))
     c4.metric("Total Nilai Kontribusi", format_rupiah_singkat(total_nilai))
     
     st.caption(f"Nilai sebenarnya: {format_rupiah(total_nilai)}")
@@ -451,7 +438,7 @@ def show_Kontainer():
             "volume_feet": "Volume Feet",
             "luas_m2": "Luas m2",
             "penyewa": "Penyewa",
-            "nilai_rupiah": "Nilai Kontribusi (Rp)",
+            "nilai_rupiah": "Nilai Kontribusi Pertahun (Rp)",
             "tanggal_mulai_tgl": "Tanggal Mulai",
             "tanggal_selesai_tgl": "Tanggal Selesai",
             "keterangan": "Unit Milik",

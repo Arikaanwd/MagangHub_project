@@ -390,7 +390,7 @@ def show_Rumdin():
             "lokasi": "Alamat Rumah Dinas",
             "penyewa": "Penyewa",
             "pic_num": "PIC",
-            "nilai_rupiah": "Nilai Kontribusi (Rp)",
+            "nilai_rupiah": "Nilai Kontribusi Pertahun (Rp)",
             "tanggal_mulai_tgl": "Tanggal Mulai",
             "tanggal_selesai_tgl": "Tanggal Selesai",
             "keterangan": "Kreditur",
