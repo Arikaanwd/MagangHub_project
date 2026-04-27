@@ -14,9 +14,6 @@ from maps.leaflet_maps_areaPAL import render_map_area_PAL
 
 def show_Dashboard_Global():
     st.title("🔔 Dashboard Global Aset")
-    
-    # st.title("🔔 Dashboard Global Aset")
-    # st.set_page_config(layout="wide")
 
     time_placeholder = st.empty()
     now = datetime.now()

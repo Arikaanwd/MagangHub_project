@@ -14,15 +14,10 @@ from input_views.input_lahan import show as show_Input_Lahan
 from input_views.input_mess import show as show_Input_Mess
 
 # ===============================
-# CONFIG STREAMLIT (HEADLESS)
-# ===============================
 st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
 )
-
-# ===============================
-# FORCE LIGHT THEME (EMBED SAFE)
 # ===============================
 st.markdown("""
 <style>
@@ -114,9 +109,6 @@ table {
 </style>
 """, unsafe_allow_html=True)
 
-
-# ===============================
-# HIDE STREAMLIT UI TOTAL
 # ===============================
 st.markdown("""
 <style>
@@ -128,13 +120,9 @@ header {visibility: hidden;}
 """, unsafe_allow_html=True)
 
 # ===============================
-# ROUTING DARI LARAVEL
-# ===============================
 params = st.query_params
 page = params.get("page", "global")
 
-# ===============================
-# RENDER PAGE
 # ===============================
 if page == "global":
     show_Dashboard_Global()

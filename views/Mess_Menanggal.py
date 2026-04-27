@@ -190,12 +190,6 @@ def show_Mess_Menanggal():
     )
     df_filtered = df_filtered[df_filtered["revenue_tahun"] > 0].copy()
 
-    # if selected_year and len(selected_year) > 0:
-    #     df_chart = df_sper_valid[df_sper_valid["tahun"].isin(selected_year)].copy()
-    # else:
-    #     # default: tahun saat ini
-    #     df_chart = df_sper_valid[df_sper_valid["tahun"] == current_year].copy()
-
     if df_filtered.empty:
         st.warning("Tidak ada data SPER untuk tahun yang dipilih")
         st.stop()

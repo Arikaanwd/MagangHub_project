@@ -27,16 +27,6 @@ def render_map_area_PAL():
     if df.empty:
         st.warning("Data penghapusbukuan tidak tersedia")
         return
-
-    # def badge(val):
-    #     v = str(val).strip().lower()
-    #     if v == "selesai":
-    #         return "✔ Selesai"
-    #     elif v == "proses":
-    #         return "🛠 Proses"
-    #     elif v == "belum":
-    #         return "⏳ Belum"
-    #     return "-"
     
     def get_latest_progress(row):
         progress_order = [
@@ -151,7 +141,6 @@ def render_map_area_PAL():
 
             lokasi = str(data['lokasi']) if pd.notna(data['lokasi']) else "-"
             progress_label = str(data['progress_label']) if pd.notna(data['progress_label']) else "-"
-            # progress_badge = badge(data['progress_value'])
             
             keterangan = data['keterangan']
             if pd.isna(keterangan) or str(keterangan).strip() == "":

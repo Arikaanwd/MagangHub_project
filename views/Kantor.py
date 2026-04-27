@@ -9,8 +9,6 @@ import time
 
 def show_Kantor():
     st.title("🏢 Dashboard SPER Kantor")
-    # st.title("🏢 Dashboard SPER Kantor")
-    # st.set_page_config(layout="wide")
 
     # ======================
     time_placeholder = st.empty()
