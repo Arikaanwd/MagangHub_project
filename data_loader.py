@@ -29,7 +29,8 @@ def load_master_lokasi_penghapusbukuan():
             a.lat, 
             a.lon,
 
-            -- TAMBAHAN PROGRESS
+            b.status,
+
             b.ppa,
             b.penerbitan_lhpb,
             b.kajian_manrisk_legal,
@@ -37,7 +38,7 @@ def load_master_lokasi_penghapusbukuan():
             b.approval_im4_kajian_penghapusbukuan,
             b.verbal_surat_dirut,
             b.rekom_persetujuan_komisaris,
-            b.persetujuan_fidusia,n
+            b.persetujuan_fidusia,
             b.persetujuan_rups,
             b.skep_penghapusbukuan,
             b.penjualan_pemindahtanganan_aset,
@@ -46,6 +47,7 @@ def load_master_lokasi_penghapusbukuan():
         FROM master_lokasi_penghapusbukuan a
         JOIN penghapusbukuan_aset b 
         ON a.id_aset = b.id_aset
+        
     """
     data, columns = fetch(query)
     df = pd.DataFrame(data, columns=columns)
@@ -254,9 +256,7 @@ def load_aset_data():
     df["tanggal_mulai"] = pd.to_datetime(df["tanggal_mulai"], errors="coerce")
     df["tanggal_selesai"] = pd.to_datetime(df["tanggal_selesai"], errors="coerce")
     df["tahun"] = df["tanggal_mulai"].dt.year
-
     # df["tahun"] = df["nomor_surat"].apply(extract_year_from_nomor_surat)
-
     df["keterangan"] = df["keterangan"].fillna("")
 
     return df

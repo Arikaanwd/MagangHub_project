@@ -11,16 +11,23 @@ from data_loader import load_master_lokasi_penghapusbukuan
 
 
 # ===============================
-@st.cache_data
+# @st.cache_data
 def get_data():
     return load_master_lokasi_penghapusbukuan()
 
 def render_map_area_PAL():
     df = get_data()
+
+    df["status_aset"] = (
+        df["status"].astype(str).str.strip().str.lower()
+    )
+
+    df = df[df["status_aset"] == "proses"]
+
     if df.empty:
         st.warning("Data penghapusbukuan tidak tersedia")
         return
-    
+
     # def badge(val):
     #     v = str(val).strip().lower()
     #     if v == "selesai":
@@ -53,7 +60,7 @@ def render_map_area_PAL():
     m = folium.Map(
         location=[-7.6145292, 110.7122465],
         zoom_start=7,
-        max_zoom=19
+        max_zoom=20
     )
     marker_lookup = {}
 
@@ -76,13 +83,11 @@ def render_map_area_PAL():
 
         key = f"{lat}_{lon}"
 
-        # TOOLTIP (hover)
         tooltip_html = f"""
-        <b>{lokasi}</b> <br>
+        <b>{lokasi}</b><br>
         {jumlah_aset} aset
         """
 
-        # POPUP (klik)
         popup_html = f"""
         <div style="width:200px; text-align:center;">
             <b>{lokasi}</b>
@@ -132,7 +137,6 @@ def render_map_area_PAL():
             if data["foto"] and str(data["foto"]) != "0":
                 image_url = BASE_IMAGE_URL + str(data["foto"])
             else:
-                # Gunakan path yang sama dengan leaflet_maps.py
                 no_image_path = os.path.join('images', 'no-image.jpg')
                 if os.path.exists(no_image_path):
                     with open(no_image_path, 'rb') as f:
@@ -140,7 +144,6 @@ def render_map_area_PAL():
                 else:
                     image_url = ""
             
-            # Format nama aset dengan HTML yang benar
             if data["jumlah"] > 1:
                 nama_aset_display = f"{data['nama_aset_master']}<br>({data['jumlah']} aset)"
             else:
@@ -155,7 +158,6 @@ def render_map_area_PAL():
                 keterangan = "-"
             keterangan = str(keterangan).replace("\n", "<br>")
             
-            # Gunakan struktur HTML yang sama dengan leaflet_maps.py yang berhasil
             st.markdown(
                 f"""
                 <div style="
@@ -173,7 +175,7 @@ def render_map_area_PAL():
                     <div>
                         <div style="text-align:center;margin-bottom:12px;">
                             <img src="{image_url}"
-                                style="width:100%;max-height:500px;object-fit:contain;border-radius:5px;">
+                                style="width:100%;max-height:400px;object-fit:contain;border-radius:5px;">
                         </div>
                         <div>
                             <h5 style="text-align:center;">{nama_aset_display}</h5>
