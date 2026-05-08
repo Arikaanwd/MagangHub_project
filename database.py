@@ -4,7 +4,7 @@ import streamlit as st
 #connection
 def get_connection():
     return mysql.connector.connect(
-        host="localhost",
+        host="dashboardmonitoringaset.my.id",
         user="dashbo50_opset_user",
         password="8vzL@tCfJYbrL5j",
         database="dashbo50_db_opset"
