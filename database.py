@@ -5,9 +5,9 @@ import streamlit as st
 def get_connection():
     return mysql.connector.connect(
         host="localhost",
-        user="root",
-        password="",
-        database="db_opset"
+        user="dashbo50_opset_user",
+        password="8vzL@tCfJYbrL5j",
+        database="dashbo50_db_opset"
     )
 
 def fetch(query):
