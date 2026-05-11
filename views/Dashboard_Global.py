@@ -231,16 +231,20 @@ def show_Dashboard_Global():
     
     st.info(f"Mode Peta Aktif : **{st.session_state.map_mode.capitalize()}**")
     st.divider()
+    
     # =======================
-    # =======================
+    # DETAIL DATA PENGHAPUSBUKUAN ASET
     # =======================
     st.subheader("📋 Detail Data Penghapusbukuan Aset")
 
     df_penghapusbukuan_aset = load_master_penghapusbukuan_aset()
 
     df_penghapusbukuan = df_penghapusbukuan_aset[[
-        "nama_aset", "ppa", "penerbitan_lhpb",
-        "kajian_manrisk_legal", "review_div_otb",
+        "nama_aset",
+        "ppa",
+        "penerbitan_lhpb",
+        "kajian_manrisk_legal",
+        "review_div_otb",
         "approval_im4_kajian_penghapusbukuan",
         "verbal_surat_dirut",
         "rekom_persetujuan_komisaris",
@@ -266,23 +270,26 @@ def show_Dashboard_Global():
     })
 
     # =======================
-    # STYLE MOBILE RESPONSIVE
+    # CSS RESPONSIVE
     # =======================
     st.markdown("""
     <style>
 
-    /* Desktop Table */
+    /* ======================
+    DESKTOP TABLE
+    ====================== */
     .table-wrapper{
         width:100%;
         overflow-x:auto;
         border-radius:12px;
         border:1px solid #e5e7eb;
         background:white;
+        margin-bottom:20px;
     }
 
     .custom-table{
         width:100%;
-        border-collapse: collapse;
+        border-collapse:collapse;
         min-width:1200px;
         font-size:13px;
     }
@@ -305,16 +312,18 @@ def show_Dashboard_Global():
     .custom-table td:nth-child(2){
         text-align:left;
         font-weight:600;
-        min-width:200px;
+        min-width:220px;
     }
 
-    /* Badge */
+    /* ======================
+    STATUS BADGE
+    ====================== */
     .status{
         display:inline-flex;
         justify-content:center;
         align-items:center;
-        width:28px;
-        height:28px;
+        width:30px;
+        height:30px;
         border-radius:8px;
         font-size:16px;
         font-weight:bold;
@@ -341,34 +350,37 @@ def show_Dashboard_Global():
         display:none;
     }
 
-    @media(max-width:768px){
+    @media (max-width:768px){
 
+        /* sembunyikan tabel desktop */
         .table-wrapper{
-            display:none;
+            display:none !important;
         }
 
+        /* tampilkan card */
         .mobile-card{
-            display:block;
+            display:block !important;
             background:white;
             border-radius:16px;
-            padding:14px;
+            padding:16px;
             margin-bottom:18px;
             border:1px solid #e5e7eb;
             box-shadow:0 2px 8px rgba(0,0,0,.08);
         }
 
         .card-title{
-            font-size:18px;
+            font-size:16px;
             font-weight:700;
-            margin-bottom:12px;
             color:#111827;
+            margin-bottom:12px;
         }
 
         .item-row{
             display:flex;
             justify-content:space-between;
             align-items:center;
-            padding:8px 0;
+            gap:10px;
+            padding:10px 0;
             border-bottom:1px solid #f1f1f1;
         }
 
@@ -377,15 +389,23 @@ def show_Dashboard_Global():
         }
 
         .item-label{
+            flex:1;
             font-size:13px;
-            color:#6b7280;
-            width:70%;
-            line-height:1.3;
+            line-height:1.4;
+            color:#374151;
         }
 
         .item-status{
-            width:30%;
+            min-width:40px;
             text-align:right;
+        }
+
+        .keterangan-box{
+            margin-top:14px;
+            padding-top:10px;
+            border-top:1px solid #eee;
+            font-size:12px;
+            color:#555;
         }
     }
     </style>
@@ -420,55 +440,67 @@ def show_Dashboard_Global():
     for col in kolom_status:
         df_html[col] = df_html[col].apply(make_status)
 
-    df_html.index = range(1, len(df_html)+1)
+    df_html.index = range(1, len(df_html) + 1)
+
     df_html = df_html.reset_index().rename(columns={
-        "index":"No"
+        "index": "No"
     })
 
-    table_html = df_html.to_html(
+    html_string = df_html.to_html(
         escape=False,
         index=False,
-        classes="custom-table"
+        classes='custom-table'
     )
 
     st.markdown(
-        f'<div class="table-wrapper">{table_html}</div>',
+        f'<div class="table-wrapper">{html_string}</div>',
         unsafe_allow_html=True
     )
 
+
     # =======================
-    # MOBILE CARD
+    # MOBILE CARD VIEW
     # =======================
     for _, row in df_penghapusbukuan.iterrows():
 
-        card_html = f"""
+        mobile_html = f"""
         <div class="mobile-card">
             <div class="card-title">
-                {row["Nama Aset"]}
+                {row['Nama Aset']}
             </div>
         """
 
         for col in kolom_status:
-            card_html += f"""
+            status_icon = make_status(row[col])
+
+            mobile_html += f"""
             <div class="item-row">
-                <div class="item-label">{col}</div>
+                <div class="item-label">
+                    {col}
+                </div>
                 <div class="item-status">
-                    {make_status(row[col])}
+                    {status_icon}
                 </div>
             </div>
             """
 
-        if pd.notna(row["Keterangan"]):
-            card_html += f"""
-            <div style="margin-top:12px">
+        keterangan = row.get("Keterangan", "")
+
+        if pd.notna(keterangan) and str(keterangan).strip():
+
+            mobile_html += f"""
+            <div class="keterangan-box">
                 <b>Keterangan:</b><br>
-                <small>{row["Keterangan"]}</small>
+                {keterangan}
             </div>
             """
 
-        card_html += "</div>"
+        mobile_html += "</div>"
 
-        st.markdown(card_html, unsafe_allow_html=True)
+        st.markdown(
+            mobile_html,
+            unsafe_allow_html=True
+        )
 
     st.divider()
 
