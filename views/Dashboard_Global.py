@@ -232,137 +232,274 @@ def show_Dashboard_Global():
     st.info(f"Mode Peta Aktif : **{st.session_state.map_mode.capitalize()}**")
     st.divider()
     # =======================
+    # =======================
     st.subheader("📋 Detail Data Penghapusbukuan Aset")
+
     df_penghapusbukuan_aset = load_master_penghapusbukuan_aset()
+
     df_penghapusbukuan = df_penghapusbukuan_aset[[
-        "nama_aset", "ppa", "penerbitan_lhpb", "kajian_manrisk_legal",
-        "review_div_otb", "approval_im4_kajian_penghapusbukuan",
-        "verbal_surat_dirut", "rekom_persetujuan_komisaris",
-        "persetujuan_fidusia", "persetujuan_rups",
-        "skep_penghapusbukuan", "penjualan_pemindahtanganan_aset", "keterangan"
+        "nama_aset",
+        "ppa",
+        "penerbitan_lhpb",
+        "kajian_manrisk_legal",
+        "review_div_otb",
+        "approval_im4_kajian_penghapusbukuan",
+        "verbal_surat_dirut",
+        "rekom_persetujuan_komisaris",
+        "persetujuan_fidusia",
+        "persetujuan_rups",
+        "skep_penghapusbukuan",
+        "penjualan_pemindahtanganan_aset",
+        "keterangan"
     ]].rename(columns={
         "nama_aset": "Nama Aset",
-        "ppa": "PPA (Permohonan Penghapusan Aset)",
-        "penerbitan_lhpb": "Penerbitan LHPB",
-        "kajian_manrisk_legal": "Kajian Manajemen Risiko dan Legal",
-        "review_div_otb": "Review Divisi Office Of The Board",
-        "approval_im4_kajian_penghapusbukuan": "Approval IM4 Kajian Penghapusbukuan",
-        "verbal_surat_dirut": "Verbal Surat Direktur Utama kepada Dewan Komisaris",
-        "rekom_persetujuan_komisaris": "Rekomendasi / Persetujuan Dewan Komisaris",
-        "persetujuan_fidusia": "Persetujuan Fidusia (Optional)",
-        "persetujuan_rups": "Persetujuan RUPS",
-        "skep_penghapusbukuan": "SKEP Penghapusbukuan Aset",
-        "penjualan_pemindahtanganan_aset": "Penjualan / Pemindahtanganan Aset",
+        "ppa": "PPA",
+        "penerbitan_lhpb": "LHPB",
+        "kajian_manrisk_legal": "Kajian Risk & Legal",
+        "review_div_otb": "Review OTB",
+        "approval_im4_kajian_penghapusbukuan": "Approval IM4",
+        "verbal_surat_dirut": "Verbal Dirut",
+        "rekom_persetujuan_komisaris": "Persetujuan Komisaris",
+        "persetujuan_fidusia": "Fidusia",
+        "persetujuan_rups": "RUPS",
+        "skep_penghapusbukuan": "SKEP",
+        "penjualan_pemindahtanganan_aset": "Pemindahtanganan",
         "keterangan": "Keterangan"
     })
 
+    # =======================
+    # CSS RESPONSIVE TABLE
+    # =======================
     st.markdown("""
     <style>
-        /* 1. Atur container utama agar selaras dengan konten lain */
+
+    /* ===== Container utama ===== */
+    .block-container {
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
+        max-width: 100% !important;
+    }
+
+    /* ===== Wrapper tabel ===== */
+    .table-wrapper {
+        width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        border-radius: 14px;
+        border: 1px solid #e6e9ef;
+        background: white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* ===== Tabel ===== */
+    .custom-table {
+        width: max-content;
+        min-width: 100%;
+        border-collapse: collapse;
+        font-family: 'Inter', sans-serif;
+        table-layout: auto;
+    }
+
+    /* ===== Header ===== */
+    .custom-table th {
+        position: sticky;
+        top: 0;
+        background: #f8f9fa;
+        color: #31333F;
+        font-weight: 600;
+        text-align: center;
+        padding: 10px 8px;
+        border-bottom: 2px solid #dee2e6;
+        white-space: nowrap;
+        font-size: 13px;
+        z-index: 2;
+    }
+
+    /* ===== Cell ===== */
+    .custom-table td {
+        padding: 10px 8px;
+        text-align: center;
+        border-bottom: 1px solid #f0f2f6;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+
+    /* ===== Sticky Kolom NO ===== */
+    .custom-table th:first-child,
+    .custom-table td:first-child {
+        position: sticky;
+        left: 0;
+        background: white;
+        z-index: 4;
+        min-width: 50px;
+        font-weight: bold;
+    }
+
+    /* ===== Sticky Nama Aset ===== */
+    .custom-table th:nth-child(2),
+    .custom-table td:nth-child(2) {
+        position: sticky;
+        left: 50px;
+        background: white;
+        z-index: 3;
+        min-width: 180px;
+        max-width: 220px;
+        text-align: left !important;
+        font-weight: 600;
+        white-space: normal;
+    }
+
+    /* ===== Badge Status ===== */
+    .badge-status,
+    .badge-status-selesai {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        height: 30px;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: bold;
+    }
+
+    .badge-status {
+        color: black;
+    }
+
+    .badge-status-selesai {
+        color: white;
+    }
+
+    .bg-selesai {
+        background: #12D200;
+    }
+
+    .bg-proses {
+        background: #FFC107;
+    }
+
+    .bg-belum {
+        background: #FF4B4B;
+    }
+
+    /* ===== MOBILE RESPONSIVE ===== */
+    @media (max-width: 768px) {
+
         .block-container {
-            padding-top: 2rem;
-            padding-bottom: 2rem;
-            padding-left: 3rem; /* Memberikan jarak tepi kiri */
-            padding-right: 3rem; /* Memberikan jarak tepi kanan */
-            max-width: 100% !important;
-            padding: 1.5rem !important;
-            max-width: 100% !important;
+            padding-left: 0.5rem !important;
+            padding-right: 0.5rem !important;
         }
 
-        /* 2. Pembungkus Tabel dengan batas lebar maksimal agar tidak meluap */
-        .table-container {
-            width: 100%;
-            max-width: 1200px; /* Sesuaikan dengan lebar rata-rata chart Anda */
-            margin: 0 auto; /* Menengahkan tabel */
-            overflow-x: auto; /* Scrollbar horizontal muncul hanya jika diperlukan */
-            border: 1px solid #e6e9ef;
-            border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            background-color: white;
-            padding: 10px;
-        }
-        
-        /* 3. Gaya Tabel Custom */
-        .custom-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: clamp(6px, 0.7vw, 11px);
-            font-family: 'Inter', sans-serif;
-            table-layout: fixed; /* Kolom menyesuaikan isi secara cerdas */
-        }
-        
         .custom-table th {
-            background-color: #f8f9fa;
-            color: #31333F;
-            font-weight: 600;
-            text-align: center !important;
-            vertical-align: middle !important;
-            padding: 12px 8px !important;
-            border-bottom: 2px solid #dee2e6;
-            white-space: normal !important; /* Wrap text untuk judul kolom yang panjang */
-            line-height: 1.2;
+            font-size: 11px;
+            padding: 8px 6px;
         }
 
         .custom-table td {
-            padding: 4px 3px;
-            border-bottom: 1px solid #f0f2f6;
-            vertical-align: middle;
-            text-align: center;
+            font-size: 11px;
+            padding: 8px 6px;
         }
 
-        /* Kolom Nama Aset dibuat lebih lebar dan rata kiri */
+        /* Nama aset lebih kecil di HP */
+        .custom-table th:nth-child(2),
         .custom-table td:nth-child(2) {
-            text-align: left !important;
-            min-width: 100px;
-            font-weight: 600;
+            min-width: 140px;
+            max-width: 160px;
+            font-size: 11px;
         }
 
-        /* Gaya Badge Status agar lebih kecil dan rapi */
-        .badge-status {
-            display: inline-block;
-            padding: 2px 0px;
-            width: 30px; /* Lebar tetap agar seragam */
-            border-radius: 4px;
-            color: black;
-            font-weight: bold;
-            font-size: 15px;
-            text-align: center;
-        }
+        /* Badge lebih kecil */
+        .badge-status,
         .badge-status-selesai {
-            display: inline-block;
-            padding: 2px 0px;
-            width: 30px; /* Lebar tetap agar seragam */
-            border-radius: 4px;
-            color: white;
-            font-weight: bold;
-            font-size: 15px;
-            text-align: center;
+            width: 28px;
+            height: 26px;
+            font-size: 12px;
         }
-        .bg-selesai { background-color: #12D200; }
-        .bg-proses { background-color: #FFCA09; }
-        .bg-belum { background-color: #FF0900; }
+    }
+
     </style>
     """, unsafe_allow_html=True)
 
+
+    # =======================
+    # STATUS ICON
+    # =======================
     def make_pretty(val):
         v = str(val).strip().lower()
-        if v == 'selesai': return f'<div class="badge-status-selesai bg-selesai">✔</div>'
-        if v == 'proses': return f'<div class="badge-status bg-proses">🛠</div>'
-        if v == 'belum': return f'<div class="badge-status bg-belum">⏳</div>'
-        return val if not pd.isna(val) and val != "None" else ""
-    
 
-    kolom_status = df_penghapusbukuan.columns[1:-1] 
+        if v == 'selesai':
+            return '''
+            <div class="badge-status-selesai bg-selesai">
+                ✔
+            </div>
+            '''
+
+        if v == 'proses':
+            return '''
+            <div class="badge-status bg-proses">
+                🛠
+            </div>
+            '''
+
+        if v == 'belum':
+            return '''
+            <div class="badge-status bg-belum">
+                ⏳
+            </div>
+            '''
+
+        return "" if pd.isna(val) else val
+
+
+    # =======================
+    # FORMAT HTML TABLE
+    # =======================
+    kolom_status = df_penghapusbukuan.columns[1:-1]
+
     df_html = df_penghapusbukuan.copy()
+
     for col in kolom_status:
         df_html[col] = df_html[col].apply(make_pretty)
 
+    # Tambah nomor urut
     df_html.index = range(1, len(df_html) + 1)
-    df_html = df_html.reset_index().rename(columns={'index': 'No'})
-    
-    html_string = df_html.to_html(escape=False, index=False, classes='custom-table')
-    st.markdown(f'<div class="table-wrapper">{html_string}</div>', unsafe_allow_html=True)
-    
+
+    df_html = (
+        df_html
+        .reset_index()
+        .rename(columns={'index': 'No'})
+    )
+
+    html_string = df_html.to_html(
+        escape=False,
+        index=False,
+        classes='custom-table'
+    )
+
+    # =======================
+    # RENDER TABLE
+    # =======================
+    st.markdown(
+        f"""
+        <div class="table-wrapper">
+            {html_string}
+        </div>
+
+        <div style="
+            font-size:12px;
+            color:gray;
+            margin-top:8px;
+            text-align:center;
+        ">
+            👉 Geser tabel ke samping untuk melihat seluruh progres penghapusbukuan
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
     st.divider()
 
     # =======================
