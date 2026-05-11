@@ -233,16 +233,14 @@ def show_Dashboard_Global():
     st.divider()
     # =======================
     # =======================
+    # =======================
     st.subheader("📋 Detail Data Penghapusbukuan Aset")
 
     df_penghapusbukuan_aset = load_master_penghapusbukuan_aset()
 
     df_penghapusbukuan = df_penghapusbukuan_aset[[
-        "nama_aset",
-        "ppa",
-        "penerbitan_lhpb",
-        "kajian_manrisk_legal",
-        "review_div_otb",
+        "nama_aset", "ppa", "penerbitan_lhpb",
+        "kajian_manrisk_legal", "review_div_otb",
         "approval_im4_kajian_penghapusbukuan",
         "verbal_surat_dirut",
         "rekom_persetujuan_komisaris",
@@ -255,7 +253,7 @@ def show_Dashboard_Global():
         "nama_aset": "Nama Aset",
         "ppa": "PPA",
         "penerbitan_lhpb": "LHPB",
-        "kajian_manrisk_legal": "Kajian Risk & Legal",
+        "kajian_manrisk_legal": "Kajian Risiko & Legal",
         "review_div_otb": "Review OTB",
         "approval_im4_kajian_penghapusbukuan": "Approval IM4",
         "verbal_surat_dirut": "Verbal Dirut",
@@ -263,163 +261,133 @@ def show_Dashboard_Global():
         "persetujuan_fidusia": "Fidusia",
         "persetujuan_rups": "RUPS",
         "skep_penghapusbukuan": "SKEP",
-        "penjualan_pemindahtanganan_aset": "Pemindahtanganan",
+        "penjualan_pemindahtanganan_aset": "Penjualan Aset",
         "keterangan": "Keterangan"
     })
 
     # =======================
-    # CSS RESPONSIVE TABLE
+    # STYLE MOBILE RESPONSIVE
     # =======================
     st.markdown("""
     <style>
 
-    /* ===== Container utama ===== */
-    .block-container {
-        padding-top: 1rem;
-        padding-bottom: 1rem;
-        padding-left: 1rem;
-        padding-right: 1rem;
-        max-width: 100% !important;
+    /* Desktop Table */
+    .table-wrapper{
+        width:100%;
+        overflow-x:auto;
+        border-radius:12px;
+        border:1px solid #e5e7eb;
+        background:white;
     }
 
-    /* ===== Wrapper tabel ===== */
-    .table-wrapper {
-        width: 100%;
-        overflow-x: auto;
-        overflow-y: hidden;
-        border-radius: 14px;
-        border: 1px solid #e6e9ef;
-        background: white;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        -webkit-overflow-scrolling: touch;
-    }
-
-    /* ===== Tabel ===== */
-    .custom-table {
-        width: max-content;
-        min-width: 100%;
+    .custom-table{
+        width:100%;
         border-collapse: collapse;
-        font-family: 'Inter', sans-serif;
-        table-layout: auto;
+        min-width:1200px;
+        font-size:13px;
     }
 
-    /* ===== Header ===== */
-    .custom-table th {
-        position: sticky;
-        top: 0;
-        background: #f8f9fa;
-        color: #31333F;
-        font-weight: 600;
-        text-align: center;
-        padding: 10px 8px;
-        border-bottom: 2px solid #dee2e6;
-        white-space: nowrap;
-        font-size: 13px;
-        z-index: 2;
-    }
-
-    /* ===== Cell ===== */
-    .custom-table td {
-        padding: 10px 8px;
-        text-align: center;
-        border-bottom: 1px solid #f0f2f6;
-        font-size: 13px;
+    .custom-table th{
+        background:#f3f4f6;
+        padding:12px 10px;
+        text-align:center;
+        font-weight:700;
+        border-bottom:1px solid #ddd;
         white-space: nowrap;
     }
 
-    /* ===== Sticky Kolom NO ===== */
-    .custom-table th:first-child,
-    .custom-table td:first-child {
-        position: sticky;
-        left: 0;
-        background: white;
-        z-index: 4;
-        min-width: 50px;
-        font-weight: bold;
+    .custom-table td{
+        padding:10px;
+        text-align:center;
+        border-bottom:1px solid #eee;
     }
 
-    /* ===== Sticky Nama Aset ===== */
-    .custom-table th:nth-child(2),
-    .custom-table td:nth-child(2) {
-        position: sticky;
-        left: 50px;
-        background: white;
-        z-index: 3;
-        min-width: 180px;
-        max-width: 220px;
-        text-align: left !important;
-        font-weight: 600;
-        white-space: normal;
+    .custom-table td:nth-child(2){
+        text-align:left;
+        font-weight:600;
+        min-width:200px;
     }
 
-    /* ===== Badge Status ===== */
-    .badge-status,
-    .badge-status-selesai {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 34px;
-        height: 30px;
-        border-radius: 8px;
-        font-size: 15px;
-        font-weight: bold;
+    /* Badge */
+    .status{
+        display:inline-flex;
+        justify-content:center;
+        align-items:center;
+        width:28px;
+        height:28px;
+        border-radius:8px;
+        font-size:16px;
+        font-weight:bold;
     }
 
-    .badge-status {
-        color: black;
+    .done{
+        background:#16a34a;
+        color:white;
     }
 
-    .badge-status-selesai {
-        color: white;
+    .process{
+        background:#facc15;
     }
 
-    .bg-selesai {
-        background: #12D200;
+    .notyet{
+        background:#ef4444;
+        color:white;
     }
 
-    .bg-proses {
-        background: #FFC107;
+    /* ======================
+    MOBILE CARD MODE
+    ====================== */
+    .mobile-card{
+        display:none;
     }
 
-    .bg-belum {
-        background: #FF4B4B;
-    }
+    @media(max-width:768px){
 
-    /* ===== MOBILE RESPONSIVE ===== */
-    @media (max-width: 768px) {
-
-        .block-container {
-            padding-left: 0.5rem !important;
-            padding-right: 0.5rem !important;
+        .table-wrapper{
+            display:none;
         }
 
-        .custom-table th {
-            font-size: 11px;
-            padding: 8px 6px;
+        .mobile-card{
+            display:block;
+            background:white;
+            border-radius:16px;
+            padding:14px;
+            margin-bottom:18px;
+            border:1px solid #e5e7eb;
+            box-shadow:0 2px 8px rgba(0,0,0,.08);
         }
 
-        .custom-table td {
-            font-size: 11px;
-            padding: 8px 6px;
+        .card-title{
+            font-size:18px;
+            font-weight:700;
+            margin-bottom:12px;
+            color:#111827;
         }
 
-        /* Nama aset lebih kecil di HP */
-        .custom-table th:nth-child(2),
-        .custom-table td:nth-child(2) {
-            min-width: 140px;
-            max-width: 160px;
-            font-size: 11px;
+        .item-row{
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            padding:8px 0;
+            border-bottom:1px solid #f1f1f1;
         }
 
-        /* Badge lebih kecil */
-        .badge-status,
-        .badge-status-selesai {
-            width: 28px;
-            height: 26px;
-            font-size: 12px;
+        .item-row:last-child{
+            border-bottom:none;
+        }
+
+        .item-label{
+            font-size:13px;
+            color:#6b7280;
+            width:70%;
+            line-height:1.3;
+        }
+
+        .item-status{
+            width:30%;
+            text-align:right;
         }
     }
-
     </style>
     """, unsafe_allow_html=True)
 
@@ -427,78 +395,80 @@ def show_Dashboard_Global():
     # =======================
     # STATUS ICON
     # =======================
-    def make_pretty(val):
+    def make_status(val):
         v = str(val).strip().lower()
 
-        if v == 'selesai':
-            return '''
-            <div class="badge-status-selesai bg-selesai">
-                ✔
-            </div>
-            '''
+        if v == "selesai":
+            return '<span class="status done">✔</span>'
 
-        if v == 'proses':
-            return '''
-            <div class="badge-status bg-proses">
-                🛠
-            </div>
-            '''
+        elif v == "proses":
+            return '<span class="status process">🛠</span>'
 
-        if v == 'belum':
-            return '''
-            <div class="badge-status bg-belum">
-                ⏳
-            </div>
-            '''
+        elif v == "belum":
+            return '<span class="status notyet">⏳</span>'
 
-        return "" if pd.isna(val) else val
+        return "-"
 
 
     # =======================
-    # FORMAT HTML TABLE
+    # DESKTOP TABLE
     # =======================
-    kolom_status = df_penghapusbukuan.columns[1:-1]
-
     df_html = df_penghapusbukuan.copy()
 
+    kolom_status = df_html.columns[1:-1]
+
     for col in kolom_status:
-        df_html[col] = df_html[col].apply(make_pretty)
+        df_html[col] = df_html[col].apply(make_status)
 
-    # Tambah nomor urut
-    df_html.index = range(1, len(df_html) + 1)
+    df_html.index = range(1, len(df_html)+1)
+    df_html = df_html.reset_index().rename(columns={
+        "index":"No"
+    })
 
-    df_html = (
-        df_html
-        .reset_index()
-        .rename(columns={'index': 'No'})
-    )
-
-    html_string = df_html.to_html(
+    table_html = df_html.to_html(
         escape=False,
         index=False,
-        classes='custom-table'
+        classes="custom-table"
     )
 
-    # =======================
-    # RENDER TABLE
-    # =======================
     st.markdown(
-        f"""
-        <div class="table-wrapper">
-            {html_string}
-        </div>
-
-        <div style="
-            font-size:12px;
-            color:gray;
-            margin-top:8px;
-            text-align:center;
-        ">
-            👉 Geser tabel ke samping untuk melihat seluruh progres penghapusbukuan
-        </div>
-        """,
+        f'<div class="table-wrapper">{table_html}</div>',
         unsafe_allow_html=True
     )
+
+    # =======================
+    # MOBILE CARD
+    # =======================
+    for _, row in df_penghapusbukuan.iterrows():
+
+        card_html = f"""
+        <div class="mobile-card">
+            <div class="card-title">
+                {row["Nama Aset"]}
+            </div>
+        """
+
+        for col in kolom_status:
+            card_html += f"""
+            <div class="item-row">
+                <div class="item-label">{col}</div>
+                <div class="item-status">
+                    {make_status(row[col])}
+                </div>
+            </div>
+            """
+
+        if pd.notna(row["Keterangan"]):
+            card_html += f"""
+            <div style="margin-top:12px">
+                <b>Keterangan:</b><br>
+                <small>{row["Keterangan"]}</small>
+            </div>
+            """
+
+        card_html += "</div>"
+
+        st.markdown(card_html, unsafe_allow_html=True)
 
     st.divider()
 
