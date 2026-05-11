@@ -231,277 +231,138 @@ def show_Dashboard_Global():
     
     st.info(f"Mode Peta Aktif : **{st.session_state.map_mode.capitalize()}**")
     st.divider()
-    
-    # =======================
-    # DETAIL DATA PENGHAPUSBUKUAN ASET
     # =======================
     st.subheader("📋 Detail Data Penghapusbukuan Aset")
-
     df_penghapusbukuan_aset = load_master_penghapusbukuan_aset()
-
     df_penghapusbukuan = df_penghapusbukuan_aset[[
-        "nama_aset",
-        "ppa",
-        "penerbitan_lhpb",
-        "kajian_manrisk_legal",
-        "review_div_otb",
-        "approval_im4_kajian_penghapusbukuan",
-        "verbal_surat_dirut",
-        "rekom_persetujuan_komisaris",
-        "persetujuan_fidusia",
-        "persetujuan_rups",
-        "skep_penghapusbukuan",
-        "penjualan_pemindahtanganan_aset",
-        "keterangan"
+        "nama_aset", "ppa", "penerbitan_lhpb", "kajian_manrisk_legal",
+        "review_div_otb", "approval_im4_kajian_penghapusbukuan",
+        "verbal_surat_dirut", "rekom_persetujuan_komisaris",
+        "persetujuan_fidusia", "persetujuan_rups",
+        "skep_penghapusbukuan", "penjualan_pemindahtanganan_aset", "keterangan"
     ]].rename(columns={
         "nama_aset": "Nama Aset",
-        "ppa": "PPA",
-        "penerbitan_lhpb": "LHPB",
-        "kajian_manrisk_legal": "Kajian Risiko & Legal",
-        "review_div_otb": "Review OTB",
-        "approval_im4_kajian_penghapusbukuan": "Approval IM4",
-        "verbal_surat_dirut": "Verbal Dirut",
-        "rekom_persetujuan_komisaris": "Persetujuan Komisaris",
-        "persetujuan_fidusia": "Fidusia",
-        "persetujuan_rups": "RUPS",
-        "skep_penghapusbukuan": "SKEP",
-        "penjualan_pemindahtanganan_aset": "Penjualan Aset",
+        "ppa": "PPA (Permohonan Penghapusan Aset)",
+        "penerbitan_lhpb": "Penerbitan LHPB",
+        "kajian_manrisk_legal": "Kajian Manajemen Risiko dan Legal",
+        "review_div_otb": "Review Divisi Office Of The Board",
+        "approval_im4_kajian_penghapusbukuan": "Approval IM4 Kajian Penghapusbukuan",
+        "verbal_surat_dirut": "Verbal Surat Direktur Utama kepada Dewan Komisaris",
+        "rekom_persetujuan_komisaris": "Rekomendasi / Persetujuan Dewan Komisaris",
+        "persetujuan_fidusia": "Persetujuan Fidusia (Optional)",
+        "persetujuan_rups": "Persetujuan RUPS",
+        "skep_penghapusbukuan": "SKEP Penghapusbukuan Aset",
+        "penjualan_pemindahtanganan_aset": "Penjualan / Pemindahtanganan Aset",
         "keterangan": "Keterangan"
     })
 
-    # =======================
-    # CSS RESPONSIVE
-    # =======================
     st.markdown("""
     <style>
-
-    /* ======================
-    DESKTOP TABLE
-    ====================== */
-    .table-wrapper{
-        width:100%;
-        overflow-x:auto;
-        border-radius:12px;
-        border:1px solid #e5e7eb;
-        background:white;
-        margin-bottom:20px;
-    }
-
-    .custom-table{
-        width:100%;
-        border-collapse:collapse;
-        min-width:1200px;
-        font-size:13px;
-    }
-
-    .custom-table th{
-        background:#f3f4f6;
-        padding:12px 10px;
-        text-align:center;
-        font-weight:700;
-        border-bottom:1px solid #ddd;
-        white-space: nowrap;
-    }
-
-    .custom-table td{
-        padding:10px;
-        text-align:center;
-        border-bottom:1px solid #eee;
-    }
-
-    .custom-table td:nth-child(2){
-        text-align:left;
-        font-weight:600;
-        min-width:220px;
-    }
-
-    /* ======================
-    STATUS BADGE
-    ====================== */
-    .status{
-        display:inline-flex;
-        justify-content:center;
-        align-items:center;
-        width:30px;
-        height:30px;
-        border-radius:8px;
-        font-size:16px;
-        font-weight:bold;
-    }
-
-    .done{
-        background:#16a34a;
-        color:white;
-    }
-
-    .process{
-        background:#facc15;
-    }
-
-    .notyet{
-        background:#ef4444;
-        color:white;
-    }
-
-    /* ======================
-    MOBILE CARD MODE
-    ====================== */
-    .mobile-card{
-        display:none;
-    }
-
-    @media (max-width:768px){
-
-        /* sembunyikan tabel desktop */
-        .table-wrapper{
-            display:none !important;
+        /* 1. Atur container utama agar selaras dengan konten lain */
+        .block-container {
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+            padding-left: 3rem; /* Memberikan jarak tepi kiri */
+            padding-right: 3rem; /* Memberikan jarak tepi kanan */
+            max-width: 100% !important;
+            padding: 1.5rem !important;
+            max-width: 100% !important;
         }
 
-        /* tampilkan card */
-        .mobile-card{
-            display:block !important;
-            background:white;
-            border-radius:16px;
-            padding:16px;
-            margin-bottom:18px;
-            border:1px solid #e5e7eb;
-            box-shadow:0 2px 8px rgba(0,0,0,.08);
+        /* 2. Pembungkus Tabel dengan batas lebar maksimal agar tidak meluap */
+        .table-container {
+            width: 100%;
+            max-width: 1200px; /* Sesuaikan dengan lebar rata-rata chart Anda */
+            margin: 0 auto; /* Menengahkan tabel */
+            overflow-x: auto; /* Scrollbar horizontal muncul hanya jika diperlukan */
+            border: 1px solid #e6e9ef;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            background-color: white;
+            padding: 10px;
+        }
+        
+        /* 3. Gaya Tabel Custom */
+        .custom-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: clamp(6px, 0.7vw, 11px);
+            font-family: 'Inter', sans-serif;
+            table-layout: fixed; /* Kolom menyesuaikan isi secara cerdas */
+        }
+        
+        .custom-table th {
+            background-color: #f8f9fa;
+            color: #31333F;
+            font-weight: 600;
+            text-align: center !important;
+            vertical-align: middle !important;
+            padding: 12px 8px !important;
+            border-bottom: 2px solid #dee2e6;
+            white-space: normal !important; /* Wrap text untuk judul kolom yang panjang */
+            line-height: 1.2;
         }
 
-        .card-title{
-            font-size:16px;
-            font-weight:700;
-            color:#111827;
-            margin-bottom:12px;
+        .custom-table td {
+            padding: 4px 3px;
+            border-bottom: 1px solid #f0f2f6;
+            vertical-align: middle;
+            text-align: center;
         }
 
-        .item-row{
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-            gap:10px;
-            padding:10px 0;
-            border-bottom:1px solid #f1f1f1;
+        /* Kolom Nama Aset dibuat lebih lebar dan rata kiri */
+        .custom-table td:nth-child(2) {
+            text-align: left !important;
+            min-width: 100px;
+            font-weight: 600;
         }
 
-        .item-row:last-child{
-            border-bottom:none;
+        /* Gaya Badge Status agar lebih kecil dan rapi */
+        .badge-status {
+            display: inline-block;
+            padding: 2px 0px;
+            width: 30px; /* Lebar tetap agar seragam */
+            border-radius: 4px;
+            color: black;
+            font-weight: bold;
+            font-size: 15px;
+            text-align: center;
         }
-
-        .item-label{
-            flex:1;
-            font-size:13px;
-            line-height:1.4;
-            color:#374151;
+        .badge-status-selesai {
+            display: inline-block;
+            padding: 2px 0px;
+            width: 30px; /* Lebar tetap agar seragam */
+            border-radius: 4px;
+            color: white;
+            font-weight: bold;
+            font-size: 15px;
+            text-align: center;
         }
-
-        .item-status{
-            min-width:40px;
-            text-align:right;
-        }
-
-        .keterangan-box{
-            margin-top:14px;
-            padding-top:10px;
-            border-top:1px solid #eee;
-            font-size:12px;
-            color:#555;
-        }
-    }
+        .bg-selesai { background-color: #12D200; }
+        .bg-proses { background-color: #FFCA09; }
+        .bg-belum { background-color: #FF0900; }
     </style>
     """, unsafe_allow_html=True)
 
-
-    # =======================
-    # STATUS ICON
-    # =======================
-    def make_status(val):
+    def make_pretty(val):
         v = str(val).strip().lower()
+        if v == 'selesai': return f'<div class="badge-status-selesai bg-selesai">✔</div>'
+        if v == 'proses': return f'<div class="badge-status bg-proses">🛠</div>'
+        if v == 'belum': return f'<div class="badge-status bg-belum">⏳</div>'
+        return val if not pd.isna(val) and val != "None" else ""
+    
 
-        if v == "selesai":
-            return '<span class="status done">✔</span>'
-
-        elif v == "proses":
-            return '<span class="status process">🛠</span>'
-
-        elif v == "belum":
-            return '<span class="status notyet">⏳</span>'
-
-        return "-"
-
-
-    # =======================
-    # DESKTOP TABLE
-    # =======================
+    kolom_status = df_penghapusbukuan.columns[1:-1] 
     df_html = df_penghapusbukuan.copy()
-
-    kolom_status = df_html.columns[1:-1]
-
     for col in kolom_status:
-        df_html[col] = df_html[col].apply(make_status)
+        df_html[col] = df_html[col].apply(make_pretty)
 
     df_html.index = range(1, len(df_html) + 1)
-
-    df_html = df_html.reset_index().rename(columns={
-        "index": "No"
-    })
-
-    html_string = df_html.to_html(
-        escape=False,
-        index=False,
-        classes='custom-table'
-    )
-
-    st.markdown(
-        f'<div class="table-wrapper">{html_string}</div>',
-        unsafe_allow_html=True
-    )
-
-
-    # =======================
-    # MOBILE CARD VIEW
-    # =======================
-    for _, row in df_penghapusbukuan.iterrows():
-
-        mobile_html = f"""
-        <div class="mobile-card">
-            <div class="card-title">
-                {row['Nama Aset']}
-            </div>
-        """
-
-        for col in kolom_status:
-            status_icon = make_status(row[col])
-
-            mobile_html += f"""
-            <div class="item-row">
-                <div class="item-label">
-                    {col}
-                </div>
-                <div class="item-status">
-                    {status_icon}
-                </div>
-            </div>
-            """
-
-        keterangan = row.get("Keterangan", "")
-
-        if pd.notna(keterangan) and str(keterangan).strip():
-
-            mobile_html += f"""
-            <div class="keterangan-box">
-                <b>Keterangan:</b><br>
-                {keterangan}
-            </div>
-            """
-
-        mobile_html += "</div>"
-
-        st.markdown(
-            mobile_html,
-            unsafe_allow_html=True
-        )
-
+    df_html = df_html.reset_index().rename(columns={'index': 'No'})
+    
+    html_string = df_html.to_html(escape=False, index=False, classes='custom-table')
+    st.markdown(f'<div class="table-wrapper">{html_string}</div>', unsafe_allow_html=True)
+    
     st.divider()
 
     # =======================
