@@ -18,12 +18,11 @@ def show_Dashboard_Global():
 
     time_placeholder = st.empty()
 
-    # Ambil waktu device/browser user
     device_time = st_javascript("""
     (() => {
         const now = new Date();
 
-        return {
+        return JSON.stringify({
             tanggal: now.toLocaleDateString('id-ID', {
                 day: '2-digit',
                 month: 'long',
@@ -34,22 +33,25 @@ def show_Dashboard_Global():
                 minute: '2-digit',
                 hour12: false
             })
-        };
+        });
     })()
     """)
 
-    # Pertama kali render -> JS masih loading
-    if device_time is None:
-        tanggal = "Loading..."
-        jam = "--:--"
+    # fallback default (server time)
+    tanggal = datetime.now().strftime("%d %B %Y")
+    jam = datetime.now().strftime("%H:%M")
 
-        # paksa rerun sebentar lagi
-        time.sleep(0.5)
-        st.rerun()
+    # kalau JS berhasil
+    if device_time:
 
-    else:
-        tanggal = device_time["tanggal"]
-        jam = device_time["jam"]
+        try:
+            parsed = json.loads(device_time)
+
+            tanggal = parsed.get("tanggal", tanggal)
+            jam = parsed.get("jam", jam)
+
+        except Exception:
+            pass
 
     time_placeholder.markdown(
         f"""
