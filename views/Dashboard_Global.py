@@ -22,37 +22,56 @@ def show_Dashboard_Global():
     device_time = st_javascript("""
     (() => {
         const now = new Date();
-
+        
+        // Format tanggal dengan opsi yang lebih stabil
+        const tanggal = now.toLocaleDateString('id-ID', {
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric'
+        });
+        
+        // Format waktu dengan AM/PM false dan timeZone dari device
+        const jam = now.toLocaleTimeString('id-ID', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false,
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+        });
+        
         return JSON.stringify({
-            tanggal: now.toLocaleDateString('id-ID', {
-                day: '2-digit',
-                month: 'long',
-                year: 'numeric'
-            }),
-            jam: now.toLocaleTimeString('id-ID', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
-            })
+            tanggal: tanggal,
+            jam: jam
         });
     })()
     """)
 
     # fallback default (server time)
     tanggal = datetime.now().strftime("%d %B %Y")
-    jam = datetime.now().strftime("%H:%M")
+    jam = datetime.now().strftime("%H:%M:%S")
 
     # kalau JS berhasil
     if device_time:
-
         try:
             parsed = json.loads(device_time)
-
+            
             tanggal = parsed.get("tanggal", tanggal)
             jam = parsed.get("jam", jam)
-
-        except Exception:
-            pass
+            
+            # Validasi format jam (pastikan memiliki format HH:MM:SS)
+            if jam and len(jam.split(':')) == 2:
+                # Jika hanya HH:MM, tambahkan detik
+                jam = jam + ":00"
+            elif jam and len(jam.split(':')) == 3:
+                # Jika sudah HH:MM:SS, biarkan
+                pass
+            else:
+                jam = datetime.now().strftime("%H:%M:%S")
+                
+        except Exception as e:
+            # Jika gagal parsing, gunakan server time
+            jam = datetime.now().strftime("%H:%M:%S")
+            tanggal = datetime.now().strftime("%d %B %Y")
 
     time_placeholder.markdown(
         f"""
