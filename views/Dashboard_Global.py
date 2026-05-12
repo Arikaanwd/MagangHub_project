@@ -17,38 +17,46 @@ def show_Dashboard_Global():
     st.title("🔔 Dashboard Global Aset")
 
     # ======================
-    # WAKTU DEVICE USER (FIX)
+    # WAKTU DEVICE USER FIX
     # ======================
+
     time_placeholder = st.empty()
-    device_time = st_javascript("""
-    (() => {
-        const now = new Date();
 
-        const tanggal = now.toLocaleDateString('id-ID', {
-            day: '2-digit',
-            month: 'long',
-            year: 'numeric'
-        });
+    # ambil sekali dari browser
+    if "device_time" not in st.session_state:
 
-        const jam = now.toLocaleTimeString('id-ID', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false
-        });
+        device_time = st_javascript("""
+        await new Promise(resolve => {
+            const now = new Date();
 
-        return {
-            tanggal: tanggal,
-            jam: jam
-        };
-    })()
-    """)
+            resolve({
+                tanggal: now.toLocaleDateString('id-ID', {
+                    day: '2-digit',
+                    month: 'long',
+                    year: 'numeric'
+                }),
+                jam: now.toLocaleTimeString('id-ID', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                }),
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+            });
+        })
+        """)
 
-    tanggal = datetime.now().strftime("%d %B %Y")
-    jam = datetime.now().strftime("%H:%M")
+        if device_time:
+            st.session_state.device_time = device_time
+            st.rerun()
 
-    if device_time and isinstance(device_time, dict):
-        tanggal = device_time.get("tanggal", tanggal)
-        jam = device_time.get("jam", jam)
+    # fallback kalau JS belum selesai
+    tanggal = "Loading..."
+    jam = "--:--"
+
+    # pakai hasil device asli
+    if "device_time" in st.session_state:
+        tanggal = st.session_state.device_time["tanggal"]
+        jam = st.session_state.device_time["jam"]
 
     time_placeholder.markdown(
         f"""
