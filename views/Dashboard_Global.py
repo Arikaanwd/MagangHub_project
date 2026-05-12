@@ -7,6 +7,7 @@ from filters import apply_global_filters
 from datetime import datetime
 import time
 import folium 
+import json
 from streamlit_folium import st_folium
 from maps.leaflet_maps import render_map
 from streamlit_javascript import st_javascript
