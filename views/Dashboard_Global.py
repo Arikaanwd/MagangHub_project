@@ -7,66 +7,33 @@ from filters import apply_global_filters
 from datetime import datetime
 import time
 import folium 
-import json
 from streamlit_folium import st_folium
 from maps.leaflet_maps import render_map
-from streamlit_javascript import st_javascript
 from maps.leaflet_maps_areaPAL import render_map_area_PAL
-
-
-def tampilkan_waktu_device():
-    """Fungsi untuk menampilkan waktu dari device pengguna menggunakan JavaScript murni"""
-    komponen_html = """
-    <div id="waktu_device_container" style="text-align:right; font-size:17px; color:gray; font-weight:500;">
-        <!-- Container untuk menampilkan waktu device -->
-    </div>
-    
-    <script>
-    // Fungsi ini akan berjalan di browser pengguna
-    function updateWaktuDevice() {
-        const sekarang = new Date(); // Mengambil waktu dari DEVICE pengguna!
-        
-        const tanggal = sekarang.toLocaleDateString('id-ID', {
-            day: '2-digit',
-            month: 'long',
-            year: 'numeric'
-        });
-        
-        const jam = sekarang.toLocaleTimeString('id-ID', {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: false
-        });
-        
-        const container = document.getElementById('waktu_device_container');
-        if (container) {
-            container.innerHTML = `📅 ${tanggal} &nbsp; | &nbsp; 🕒 ${jam}`;
-        }
-    }
-    
-    // Jalankan fungsi sekali saat halaman dimuat
-    updateWaktuDevice();
-    // Update setiap 1 detik agar menjadi jam digital yang hidup
-    setInterval(updateWaktuDevice, 1000);
-    </script>
-    """
-    
-    # Tampilkan komponen HTML/JavaScript
-    st.markdown(komponen_html, unsafe_allow_html=True)
 
 
 def show_Dashboard_Global():
     st.title("🔔 Dashboard Global Aset")
 
-    tampilkan_waktu_device()
+    time_placeholder = st.empty()
+    now = datetime.now()
+    time_str = now.strftime('%H:%M')
+    time_placeholder.markdown(
+        f"""
+        <div style="text-align:right; font-size:17px; color:gray;">
+            📅 {now.strftime('%d %B %Y')} &nbsp; | &nbsp; {time_str} WIB
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    time.sleep(1)
 
     if "last_refresh" not in st.session_state:
         st.session_state.last_refresh = time.time()
 
     if time.time() - st.session_state.last_refresh > 60:
         st.session_state.last_refresh = time.time()
-
+        
     # ======================
     def format_rupiah_full(n):
         return f"Rp {n:,.0f}".replace(",", ".")
@@ -93,6 +60,18 @@ def show_Dashboard_Global():
             range=[0, max_val * 1.2 if max_val > 0 else 1],
             tickformat=","
         )
+
+    # def warna_progres(val):
+    #     val = str(val).strip().lower()
+
+    #     if val == "belum" :
+    #         return "background-color:#FF0900; color:white; text-align:center; font-weight:bold;"
+    #     elif val == "proses" :
+    #         return "background-color:#FFCA09; color:white; text-align:center; font-weight:bold;"
+    #     elif val == "selesai" :
+    #         return "background-color:#12D200; color:white; text-align:center; font-weight:bold;"
+    #     else :
+    #         return ""
 
     # ======================
     df = load_aset_data()
@@ -153,6 +132,7 @@ def show_Dashboard_Global():
 
     if jenis_selected:
         df_base = df_base[df_base["jenis_aset"].isin(jenis_selected)]
+
     # ===================
     st.session_state["tahun_selected"] = tahun_selected
     st.session_state["jenis_selected"] = jenis_selected
@@ -165,7 +145,7 @@ def show_Dashboard_Global():
 
     if jenis_selected:
         df_filtered = df_filtered[df_filtered["jenis_aset"].isin(jenis_selected)]
-
+        
     df_chart = df_filtered.copy()
 
     # ======================
