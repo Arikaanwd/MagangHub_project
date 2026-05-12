@@ -7,3 +7,4 @@ mysql-connector-python
 folium
 streamlit-folium
 streamlit-javascript
+streamlit-autorefresh

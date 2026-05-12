@@ -11,10 +11,16 @@ import folium
 from streamlit_folium import st_folium
 from maps.leaflet_maps import render_map
 from maps.leaflet_maps_areaPAL import render_map_area_PAL
+from streamlit_autorefresh import st_autorefresh
 
 
 def show_Dashboard_Global():
     st.title("🔔 Dashboard Global Aset")
+
+    st_autorefresh(
+        interval=60 * 1000,
+        key="refresh_dashboard"
+    )
 
     now = datetime.now(
         ZoneInfo("Asia/Jakarta")
@@ -152,7 +158,7 @@ def show_Dashboard_Global():
         
     df_chart = df_filtered.copy()
 
-    current_year = datetime.now().year
+    current_year = now.year
 
     if tahun_selected:
         df_summary = df_filtered.copy()
@@ -494,8 +500,7 @@ def show_Dashboard_Global():
     st.plotly_chart(fig_line, width="stretch")
     st.divider()
     
-    # Distribusi & Komposisi 
-    current_year = datetime.now().year
+    current_year = now.year
 
     if tahun_selected:
         df_chart = df_filtered.copy()
