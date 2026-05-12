@@ -19,7 +19,7 @@ def show_Rumdin():
     time_placeholder.markdown(
         f"""
         <div style="text-align:right; font-size:17px; color:gray; margin-bottom:50px;">
-            📅 {now.strftime('%d %B %Y')} &nbsp; | &nbsp; {time_str} WIB
+            📅 {now.strftime('%d %B %Y')} &nbs
         </div>
         """,
         unsafe_allow_html=True

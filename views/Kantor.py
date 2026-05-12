@@ -17,7 +17,7 @@ def show_Kantor():
     time_placeholder.markdown(
         f"""
         <div style="text-align:right; font-size:17px; color:gray; margin-bottom:50px;">
-            📅 {now.strftime('%d %B %Y')} &nbsp; | &nbsp; {time_str} WIB
+            📅 {now.strftime('%d %B %Y')} &nbsp
         </div>
         """,
         unsafe_allow_html=True
