@@ -14,88 +14,52 @@ from streamlit_javascript import st_javascript
 from maps.leaflet_maps_areaPAL import render_map_area_PAL
 
 
-def show_Dashboard_Global():
-    st.title("🔔 Dashboard Global Aset")
-
-     # Inisialisasi session state untuk waktu
-    if "device_tanggal" not in st.session_state:
-        st.session_state.device_tanggal = datetime.now().strftime("%d %B %Y")
-    if "device_jam" not in st.session_state:
-        st.session_state.device_jam = datetime.now().strftime("%H:%M")
-    if "time_initialized" not in st.session_state:
-        st.session_state.time_initialized = False
-
-    time_placeholder = st.empty()
-
-    # JavaScript untuk mengambil waktu device
-    device_time = st_javascript("""
-    (() => {
-        const now = new Date();
+def tampilkan_waktu_device():
+    """Fungsi untuk menampilkan waktu dari device pengguna menggunakan JavaScript murni"""
+    komponen_html = """
+    <div id="waktu_device_container" style="text-align:right; font-size:17px; color:gray; font-weight:500;">
+        <!-- Container untuk menampilkan waktu device -->
+    </div>
+    
+    <script>
+    // Fungsi ini akan berjalan di browser pengguna
+    function updateWaktuDevice() {
+        const sekarang = new Date(); // Mengambil waktu dari DEVICE pengguna!
         
-        // Format tanggal
-        const tanggal = now.toLocaleDateString('id-ID', {
+        const tanggal = sekarang.toLocaleDateString('id-ID', {
             day: '2-digit',
             month: 'long',
             year: 'numeric'
         });
         
-        // Format waktu lengkap dengan timezone device
-        const jam = now.toLocaleTimeString('id-ID', {
+        const jam = sekarang.toLocaleTimeString('id-ID', {
             hour: '2-digit',
             minute: '2-digit',
             second: '2-digit',
             hour12: false
         });
         
-        // Kirim juga timestamp untuk validasi
-        const timestamp = now.getTime();
-        
-        return JSON.stringify({
-            tanggal: tanggal,
-            jam: jam,
-            timestamp: timestamp
-        });
-    })()
-    """)
-
-    # Update session state jika JavaScript berhasil
-    if device_time and not st.session_state.time_initialized:
-        try:
-            parsed = json.loads(device_time)
-            if parsed.get("tanggal") and parsed.get("jam"):
-                st.session_state.device_tanggal = parsed["tanggal"]
-                st.session_state.device_jam = parsed["jam"]
-                st.session_state.time_initialized = True
-        except Exception:
-            pass
-
-    # Auto-refresh setiap detik untuk update waktu
-    current_time = time.time()
-    if "last_time_update" not in st.session_state:
-        st.session_state.last_time_update = current_time
+        const container = document.getElementById('waktu_device_container');
+        if (container) {
+            container.innerHTML = `📅 ${tanggal} &nbsp; | &nbsp; 🕒 ${jam}`;
+        }
+    }
     
-    # Update waktu setiap 1 detik (hanya jika sudah terinisialisasi)
-    if st.session_state.time_initialized and (current_time - st.session_state.last_time_update >= 1):
-        # Refresh JavaScript untuk mendapatkan waktu terbaru
-        st.rerun()
-        st.session_state.last_time_update = current_time
+    // Jalankan fungsi sekali saat halaman dimuat
+    updateWaktuDevice();
+    // Update setiap 1 detik agar menjadi jam digital yang hidup
+    setInterval(updateWaktuDevice, 1000);
+    </script>
+    """
+    
+    # Tampilkan komponen HTML/JavaScript
+    st.markdown(komponen_html, unsafe_allow_html=True)
 
-    # Tampilkan waktu dari session state
-    time_placeholder.markdown(
-        f"""
-        <div style="
-            text-align:right;
-            font-size:17px;
-            color:gray;
-            font-weight:500;
-        ">
-            📅 {st.session_state.device_tanggal}
-            &nbsp; | &nbsp;
-            🕒 {st.session_state.device_jam}
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+
+def show_Dashboard_Global():
+    st.title("🔔 Dashboard Global Aset")
+
+    tampilkan_waktu_device()
 
     if "last_refresh" not in st.session_state:
         st.session_state.last_refresh = time.time()
