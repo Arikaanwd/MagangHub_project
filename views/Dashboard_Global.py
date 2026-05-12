@@ -123,50 +123,146 @@ def show_Dashboard_Global():
     )
 
     st.subheader("Filter Data")
-    f1, f2 = st.columns(2)
-    df_base = df_sper_valid.copy()
+    for key in ["tahun_selected", "jenis_selected", "penyewa_selected"]:
+        if key not in st.session_state:
+            st.session_state[key] = []
+
+    df_tahun = df_sper_valid.copy()
+
+    if st.session_state["jenis_selected"]:
+        df_tahun = df_tahun[
+            df_tahun["jenis_aset"].isin(
+                st.session_state["jenis_selected"]
+            )
+        ]
+
+    if st.session_state["penyewa_selected"]:
+        df_tahun = df_tahun[
+            df_tahun["penyewa"].isin(
+                st.session_state["penyewa_selected"]
+            )
+        ]
+
+    tahun_options = sorted(
+        df_tahun["tahun"]
+        .dropna()
+        .astype(int)
+        .unique()
+    )
+
+    df_jenis = df_sper_valid.copy()
+
+    if st.session_state["tahun_selected"]:
+        df_jenis = df_jenis[
+            df_jenis["tahun"].isin(
+                st.session_state["tahun_selected"]
+            )
+        ]
+
+    if st.session_state["penyewa_selected"]:
+        df_jenis = df_jenis[
+            df_jenis["penyewa"].isin(
+                st.session_state["penyewa_selected"]
+            )
+        ]
+
+    jenis_options = sorted(
+        df_jenis["jenis_aset"]
+        .dropna()
+        .unique()
+    )
+
+    df_penyewa = df_sper_valid.copy()
+
+    if st.session_state["tahun_selected"]:
+        df_penyewa = df_penyewa[
+            df_penyewa["tahun"].isin(
+                st.session_state["tahun_selected"]
+            )
+        ]
+
+    if st.session_state["jenis_selected"]:
+        df_penyewa = df_penyewa[
+            df_penyewa["jenis_aset"].isin(
+                st.session_state["jenis_selected"]
+            )
+        ]
+
+    penyewa_options = sorted(
+        df_penyewa["penyewa"]
+        .dropna()
+        .unique()
+    )
+
+    f1, f2, f3 = st.columns(3)
+
     with f1:
         tahun_selected = st.multiselect(
             "Tahun",
-            options=sorted(df_base["tahun"].dropna().astype(int).unique()),
-            default=st.session_state.get("tahun_selected", [])
+            options=tahun_options,
+            default=st.session_state["tahun_selected"]
         )
-
-    if tahun_selected:
-        df_base = df_base[df_base["tahun"].isin(tahun_selected)]
 
     with f2:
         jenis_selected = st.multiselect(
             "Jenis Aset",
-            options=sorted(df_base["jenis_aset"].dropna().unique()),
-            default=st.session_state.get("jenis_selected", [])
+            options=jenis_options,
+            default=st.session_state["jenis_selected"]
         )
 
-    if jenis_selected:
-        df_base = df_base[df_base["jenis_aset"].isin(jenis_selected)]
+    with f3:
+        penyewa_selected = st.multiselect(
+            "Penyewa",
+            options=penyewa_options,
+            default=st.session_state["penyewa_selected"]
+        )
 
     st.session_state["tahun_selected"] = tahun_selected
     st.session_state["jenis_selected"] = jenis_selected
+    st.session_state["penyewa_selected"] = penyewa_selected
 
     df_filtered = df_sper_valid.copy()
 
     if tahun_selected:
-        df_filtered = df_filtered[df_filtered["tahun"].isin(tahun_selected)]
+        df_filtered = df_filtered[
+            df_filtered["tahun"].isin(
+                tahun_selected
+            )
+        ]
 
     if jenis_selected:
-        df_filtered = df_filtered[df_filtered["jenis_aset"].isin(jenis_selected)]
-        
+        df_filtered = df_filtered[
+            df_filtered["jenis_aset"].isin(
+                jenis_selected
+            )
+        ]
+
+    if penyewa_selected:
+        df_filtered = df_filtered[
+            df_filtered["penyewa"].isin(
+                penyewa_selected
+            )
+        ]
+
     df_chart = df_filtered.copy()
 
     current_year = now.year
 
-    if tahun_selected:
+    if (
+        tahun_selected
+        or jenis_selected
+        or penyewa_selected
+    ):
         df_summary = df_filtered.copy()
     else:
-        df_summary = df_filtered[df_filtered["tahun"] == current_year].copy()
+        df_summary = df_filtered[
+            df_filtered["tahun"] == current_year
+        ].copy()
 
     if df_summary.empty:
-        st.warning("Tidak ada data untuk filter yang dipilih")
+        st.warning(
+            "Tidak ada data untuk filter yang dipilih"
+        )
         st.stop()
 
     st.divider()
