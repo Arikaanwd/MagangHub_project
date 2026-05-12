@@ -9,24 +9,66 @@ import time
 import folium 
 from streamlit_folium import st_folium
 from maps.leaflet_maps import render_map
+from streamlit_javascript import st_javascript
 from maps.leaflet_maps_areaPAL import render_map_area_PAL
 
 
 def show_Dashboard_Global():
     st.title("🔔 Dashboard Global Aset")
 
+    # ======================
+    # WAKTU DEVICE USER (AUTO)
+    # ======================
+
     time_placeholder = st.empty()
-    now = datetime.now()
-    time_str = now.strftime('%H:%M')
+
+    # ambil waktu device browser
+    device_time = st_javascript(
+        """
+        new Date().toLocaleString('id-ID', {
+            timeZoneName: 'short'
+        })
+        """
+    )
+
+    if device_time:
+
+        try:
+            # parse hasil JS
+            now = datetime.strptime(
+                device_time.replace(".", ":"),
+                "%d/%m/%Y, %H:%M:%S %Z"
+            )
+
+            tanggal = now.strftime("%d %B %Y")
+            jam = now.strftime("%H:%M")
+
+        except:
+            # fallback kalau parsing gagal
+            now = datetime.now()
+            tanggal = now.strftime("%d %B %Y")
+            jam = now.strftime("%H:%M")
+
+    else:
+        # fallback awal load
+        now = datetime.now()
+        tanggal = now.strftime("%d %B %Y")
+        jam = now.strftime("%H:%M")
+
+
     time_placeholder.markdown(
         f"""
-        <div style="text-align:right; font-size:17px; color:gray;">
-            📅 {now.strftime('%d %B %Y')} &nbsp; | &nbsp; {time_str} WIB
+        <div style="
+            text-align:right;
+            font-size:17px;
+            color:gray;
+            font-weight:500;
+        ">
+            📅 {tanggal} &nbsp; | &nbsp; 🕒 {jam}
         </div>
         """,
         unsafe_allow_html=True
     )
-    time.sleep(1)
 
     if "last_refresh" not in st.session_state:
         st.session_state.last_refresh = time.time()
@@ -232,137 +274,266 @@ def show_Dashboard_Global():
     st.info(f"Mode Peta Aktif : **{st.session_state.map_mode.capitalize()}**")
     st.divider()
     # =======================
+    # =======================
+    # DETAIL DATA PENGHAPUSBUKUAN ASET
+    # =======================
     st.subheader("📋 Detail Data Penghapusbukuan Aset")
+
     df_penghapusbukuan_aset = load_master_penghapusbukuan_aset()
+
     df_penghapusbukuan = df_penghapusbukuan_aset[[
-        "nama_aset", "ppa", "penerbitan_lhpb", "kajian_manrisk_legal",
-        "review_div_otb", "approval_im4_kajian_penghapusbukuan",
-        "verbal_surat_dirut", "rekom_persetujuan_komisaris",
-        "persetujuan_fidusia", "persetujuan_rups",
-        "skep_penghapusbukuan", "penjualan_pemindahtanganan_aset", "keterangan"
+        "nama_aset",
+        "ppa",
+        "penerbitan_lhpb",
+        "kajian_manrisk_legal",
+        "review_div_otb",
+        "approval_im4_kajian_penghapusbukuan",
+        "verbal_surat_dirut",
+        "rekom_persetujuan_komisaris",
+        "persetujuan_fidusia",
+        "persetujuan_rups",
+        "skep_penghapusbukuan",
+        "penjualan_pemindahtanganan_aset",
+        "keterangan"
     ]].rename(columns={
         "nama_aset": "Nama Aset",
-        "ppa": "PPA (Permohonan Penghapusan Aset)",
-        "penerbitan_lhpb": "Penerbitan LHPB",
-        "kajian_manrisk_legal": "Kajian Manajemen Risiko dan Legal",
-        "review_div_otb": "Review Divisi Office Of The Board",
-        "approval_im4_kajian_penghapusbukuan": "Approval IM4 Kajian Penghapusbukuan",
-        "verbal_surat_dirut": "Verbal Surat Direktur Utama kepada Dewan Komisaris",
-        "rekom_persetujuan_komisaris": "Rekomendasi / Persetujuan Dewan Komisaris",
-        "persetujuan_fidusia": "Persetujuan Fidusia (Optional)",
-        "persetujuan_rups": "Persetujuan RUPS",
-        "skep_penghapusbukuan": "SKEP Penghapusbukuan Aset",
-        "penjualan_pemindahtanganan_aset": "Penjualan / Pemindahtanganan Aset",
+        "ppa": "PPA",
+        "penerbitan_lhpb": "LHPB",
+        "kajian_manrisk_legal": "Kajian Risiko & Legal",
+        "review_div_otb": "Review OTB",
+        "approval_im4_kajian_penghapusbukuan": "Approval IM4",
+        "verbal_surat_dirut": "Verbal Dirut",
+        "rekom_persetujuan_komisaris": "Persetujuan Komisaris",
+        "persetujuan_fidusia": "Fidusia",
+        "persetujuan_rups": "RUPS",
+        "skep_penghapusbukuan": "SKEP",
+        "penjualan_pemindahtanganan_aset": "Penjualan Aset",
         "keterangan": "Keterangan"
     })
 
+    # =======================
+    # STYLE
+    # =======================
     st.markdown("""
     <style>
-        /* 1. Atur container utama agar selaras dengan konten lain */
-        .block-container {
-            padding-top: 2rem;
-            padding-bottom: 2rem;
-            padding-left: 3rem; /* Memberikan jarak tepi kiri */
-            padding-right: 3rem; /* Memberikan jarak tepi kanan */
-            max-width: 100% !important;
-            padding: 1.5rem !important;
-            max-width: 100% !important;
-        }
 
-        /* 2. Pembungkus Tabel dengan batas lebar maksimal agar tidak meluap */
-        .table-container {
-            width: 100%;
-            max-width: 1200px; /* Sesuaikan dengan lebar rata-rata chart Anda */
-            margin: 0 auto; /* Menengahkan tabel */
-            overflow-x: auto; /* Scrollbar horizontal muncul hanya jika diperlukan */
-            border: 1px solid #e6e9ef;
-            border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            background-color: white;
-            padding: 10px;
-        }
-        
-        /* 3. Gaya Tabel Custom */
-        .custom-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: clamp(6px, 0.7vw, 11px);
-            font-family: 'Inter', sans-serif;
-            table-layout: fixed; /* Kolom menyesuaikan isi secara cerdas */
-        }
-        
-        .custom-table th {
-            background-color: #f8f9fa;
-            color: #31333F;
-            font-weight: 600;
-            text-align: center !important;
-            vertical-align: middle !important;
-            padding: 12px 8px !important;
-            border-bottom: 2px solid #dee2e6;
-            white-space: normal !important; /* Wrap text untuk judul kolom yang panjang */
-            line-height: 1.2;
-        }
+    .table-box{
+        overflow-x:auto;
+        border-radius:14px;
+        border:1px solid #e5e7eb;
+        background:white;
+        margin-bottom:20px;
+    }
 
-        .custom-table td {
-            padding: 4px 3px;
-            border-bottom: 1px solid #f0f2f6;
-            vertical-align: middle;
-            text-align: center;
-        }
+    .custom-table{
+        width:100%;
+        min-width:1200px;
+        border-collapse:collapse;
+        font-size:13px;
+    }
 
-        /* Kolom Nama Aset dibuat lebih lebar dan rata kiri */
-        .custom-table td:nth-child(2) {
-            text-align: left !important;
-            min-width: 100px;
-            font-weight: 600;
-        }
+    .custom-table th{
+        background:#f8fafc;
+        padding:12px;
+        text-align:center;
+        border-bottom:1px solid #ddd;
+        font-weight:700;
+    }
 
-        /* Gaya Badge Status agar lebih kecil dan rapi */
-        .badge-status {
-            display: inline-block;
-            padding: 2px 0px;
-            width: 30px; /* Lebar tetap agar seragam */
-            border-radius: 4px;
-            color: black;
-            font-weight: bold;
-            font-size: 15px;
-            text-align: center;
-        }
-        .badge-status-selesai {
-            display: inline-block;
-            padding: 2px 0px;
-            width: 30px; /* Lebar tetap agar seragam */
-            border-radius: 4px;
-            color: white;
-            font-weight: bold;
-            font-size: 15px;
-            text-align: center;
-        }
-        .bg-selesai { background-color: #12D200; }
-        .bg-proses { background-color: #FFCA09; }
-        .bg-belum { background-color: #FF0900; }
+    .custom-table td{
+        padding:10px;
+        text-align:center;
+        border-bottom:1px solid #eee;
+    }
+
+    .custom-table td:nth-child(2){
+        text-align:left;
+        min-width:220px;
+        font-weight:600;
+    }
+
+    /* CARD MOBILE */
+    .mobile-card{
+        background:white;
+        border-radius:18px;
+        padding:18px;
+        margin-bottom:18px;
+        border:1px solid #e5e7eb;
+        box-shadow:0 4px 12px rgba(0,0,0,.06);
+    }
+
+    .card-title{
+        font-size:17px;
+        font-weight:700;
+        margin-bottom:14px;
+        color:#111827;
+    }
+
+    .item-row{
+        display:flex;
+        justify-content:space-between;
+        align-items:flex-start;
+        gap:12px;
+        padding:12px 0;
+        border-bottom:1px solid #f1f5f9;
+    }
+
+    .item-row:last-child{
+        border-bottom:none;
+    }
+
+    .item-label{
+        flex:1;
+        font-size:13px;
+        color:#374151;
+        line-height:1.4;
+    }
+
+    .item-status{
+        width:45px;
+        text-align:right;
+    }
+
+    .status{
+        display:inline-flex;
+        justify-content:center;
+        align-items:center;
+        width:32px;
+        height:32px;
+        border-radius:10px;
+        font-size:15px;
+        font-weight:bold;
+    }
+
+    .done{
+        background:#16a34a;
+        color:white;
+    }
+
+    .process{
+        background:#facc15;
+    }
+
+    .notyet{
+        background:#ef4444;
+        color:white;
+    }
+
+    .keterangan-box{
+        margin-top:14px;
+        background:#f9fafb;
+        border-radius:12px;
+        padding:12px;
+        font-size:12px;
+    }
+
     </style>
     """, unsafe_allow_html=True)
 
-    def make_pretty(val):
+    # =======================
+    # STATUS ICON
+    # =======================
+    def make_status(val):
         v = str(val).strip().lower()
-        if v == 'selesai': return f'<div class="badge-status-selesai bg-selesai">✔</div>'
-        if v == 'proses': return f'<div class="badge-status bg-proses">🛠</div>'
-        if v == 'belum': return f'<div class="badge-status bg-belum">⏳</div>'
-        return val if not pd.isna(val) and val != "None" else ""
-    
 
-    kolom_status = df_penghapusbukuan.columns[1:-1] 
-    df_html = df_penghapusbukuan.copy()
-    for col in kolom_status:
-        df_html[col] = df_html[col].apply(make_pretty)
+        if v == "selesai":
+            return '<span class="status done">✔</span>'
 
-    df_html.index = range(1, len(df_html) + 1)
-    df_html = df_html.reset_index().rename(columns={'index': 'No'})
-    
-    html_string = df_html.to_html(escape=False, index=False, classes='custom-table')
-    st.markdown(f'<div class="table-wrapper">{html_string}</div>', unsafe_allow_html=True)
-    
+        elif v == "proses":
+            return '<span class="status process">🛠</span>'
+
+        elif v == "belum":
+            return '<span class="status notyet">⏳</span>'
+
+        return "-"
+
+
+    kolom_status = df_penghapusbukuan.columns[1:-1]
+
+
+    # =======================
+    # CEK MOBILE
+    # =======================
+    is_mobile = st.query_params.get("mobile", "false") == "true"
+
+    # =======================
+    # DESKTOP = TABLE
+    # =======================
+    if not is_mobile:
+
+        df_html = df_penghapusbukuan.copy()
+
+        for col in kolom_status:
+            df_html[col] = df_html[col].apply(make_status)
+
+        df_html.index = range(1, len(df_html)+1)
+
+        df_html = df_html.reset_index().rename(
+            columns={"index":"No"}
+        )
+
+        html_table = df_html.to_html(
+            escape=False,
+            index=False,
+            classes="custom-table"
+        )
+
+        st.markdown(
+            f"""
+            <div class="table-box">
+                {html_table}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    # =======================
+    # MOBILE = CARD VIEW
+    # =======================
+    else:
+
+        for _, row in df_penghapusbukuan.iterrows():
+
+            html_card = f"""
+            <div class="mobile-card">
+
+                <div class="card-title">
+                    {row["Nama Aset"]}
+                </div>
+            """
+
+            for col in kolom_status:
+
+                html_card += f"""
+                <div class="item-row">
+
+                    <div class="item-label">
+                        {col}
+                    </div>
+
+                    <div class="item-status">
+                        {make_status(row[col])}
+                    </div>
+
+                </div>
+                """
+
+            if pd.notna(row["Keterangan"]):
+
+                html_card += f"""
+                <div class="keterangan-box">
+                    <b>Keterangan:</b><br>
+                    {row["Keterangan"]}
+                </div>
+                """
+
+            html_card += "</div>"
+
+            st.markdown(
+                html_card,
+                unsafe_allow_html=True
+            )
+
     st.divider()
 
     # =======================
