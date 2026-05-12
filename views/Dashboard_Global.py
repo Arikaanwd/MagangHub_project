@@ -15,25 +15,59 @@ from maps.leaflet_maps_areaPAL import render_map_area_PAL
 def show_Dashboard_Global():
     st.title("🔔 Dashboard Global Aset")
 
-    time_placeholder = st.empty()
-    now = datetime.now()
-    time_str = now.strftime('%H:%M')
-    time_placeholder.markdown(
-        f"""
-        <div style="text-align:right; font-size:17px; color:gray;">
-            📅 {now.strftime('%d %B %Y')} &nbsp
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-    time.sleep(1)
+    # ===================================================
+    st.markdown("""
+    <div id="device-datetime" style="text-align:right; font-size:17px; color:gray; font-weight:500;">
+        📅 Memuat waktu...
+    </div>
+    
+    <script>
+    (function() {
+        function updateDateTime() {
+            try {
+                const now = new Date();
+                
+                // Format tanggal Indonesia
+                const tanggal = now.toLocaleDateString('id-ID', {
+                    day: '2-digit',
+                    month: 'long',
+                    year: 'numeric'
+                });
+                
+                // Format waktu 24 jam
+                const jam = now.toLocaleTimeString('id-ID', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                });
+                
+                const datetimeDiv = document.getElementById('device-datetime');
+                if (datetimeDiv) {
+                    datetimeDiv.innerHTML = `📅 ${tanggal} &nbsp; | &nbsp; 🕒 ${jam} WIB`;
+                }
+            } catch(e) {
+                console.error('Error update waktu:', e);
+            }
+        }
+        
+        // Update segera
+        updateDateTime();
+        
+        // Update setiap menit (cukup untuk jam dan tanggal)
+        setInterval(updateDateTime, 60000);
+    })();
+    </script>
+    """, unsafe_allow_html=True)
+
+    # Hapus kode time_placeholder dan time.sleep() yang lama
+    # Hapus juga st.empty() yang tidak diperlukan lagi
 
     if "last_refresh" not in st.session_state:
         st.session_state.last_refresh = time.time()
 
     if time.time() - st.session_state.last_refresh > 60:
         st.session_state.last_refresh = time.time()
-        
+
     # ======================
     def format_rupiah_full(n):
         return f"Rp {n:,.0f}".replace(",", ".")
@@ -145,7 +179,7 @@ def show_Dashboard_Global():
 
     if jenis_selected:
         df_filtered = df_filtered[df_filtered["jenis_aset"].isin(jenis_selected)]
-
+        
     df_chart = df_filtered.copy()
 
     # ======================
