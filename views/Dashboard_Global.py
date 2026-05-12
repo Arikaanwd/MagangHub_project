@@ -5,6 +5,7 @@ from data_loader import load_aset_data
 from data_loader import load_master_penghapusbukuan_aset
 from filters import apply_global_filters
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import time
 import folium 
 from streamlit_folium import st_folium
@@ -15,52 +16,46 @@ from maps.leaflet_maps_areaPAL import render_map_area_PAL
 def show_Dashboard_Global():
     st.title("🔔 Dashboard Global Aset")
 
-    # ===================================================
-    st.markdown("""
-    <div id="device-datetime" style="text-align:right; font-size:17px; color:gray; font-weight:500;">
-        📅 Memuat waktu...
-    </div>
+    now = datetime.now(
+        ZoneInfo("Asia/Jakarta")
+    )
     
-    <script>
-    (function() {
-        function updateDateTime() {
-            try {
-                const now = new Date();
-                
-                // Format tanggal Indonesia
-                const tanggal = now.toLocaleDateString('id-ID', {
-                    day: '2-digit',
-                    month: 'long',
-                    year: 'numeric'
-                });
-                
-                // Format waktu 24 jam
-                const jam = now.toLocaleTimeString('id-ID', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: false
-                });
-                
-                const datetimeDiv = document.getElementById('device-datetime');
-                if (datetimeDiv) {
-                    datetimeDiv.innerHTML = `📅 ${tanggal} &nbsp; | &nbsp; 🕒 ${jam} WIB`;
-                }
-            } catch(e) {
-                console.error('Error update waktu:', e);
-            }
-        }
-        
-        // Update segera
-        updateDateTime();
-        
-        // Update setiap menit (cukup untuk jam dan tanggal)
-        setInterval(updateDateTime, 60000);
-    })();
-    </script>
-    """, unsafe_allow_html=True)
+    tanggal = now.strftime("%d %B %Y")
+    jam = now.strftime("%H:%M")
 
-    # Hapus kode time_placeholder dan time.sleep() yang lama
-    # Hapus juga st.empty() yang tidak diperlukan lagi
+    bulan_id = {
+        "January": "Januari",
+        "February": "Februari",
+        "March": "Maret",
+        "April": "April",
+        "May": "Mei",
+        "June": "Juni",
+        "July": "Juli",
+        "August": "Agustus",
+        "September": "September",
+        "October": "Oktober",
+        "November": "November",
+        "December": "Desember"
+    }
+
+    for eng, indo in bulan_id.items():
+        tanggal = tanggal.replace(eng, indo)
+
+    st.markdown(
+        f"""
+        <div style="
+            text-align:right;
+            font-size:17px;
+            color:gray;
+            font-weight:500;
+        ">
+            📅 {tanggal}
+            &nbsp; | &nbsp;
+            🕒 {jam} WIB
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
     if "last_refresh" not in st.session_state:
         st.session_state.last_refresh = time.time()
@@ -68,7 +63,6 @@ def show_Dashboard_Global():
     if time.time() - st.session_state.last_refresh > 60:
         st.session_state.last_refresh = time.time()
 
-    # ======================
     def format_rupiah_full(n):
         return f"Rp {n:,.0f}".replace(",", ".")
     def format_rupiah_singkat(n):
@@ -95,26 +89,12 @@ def show_Dashboard_Global():
             tickformat=","
         )
 
-    # def warna_progres(val):
-    #     val = str(val).strip().lower()
-
-    #     if val == "belum" :
-    #         return "background-color:#FF0900; color:white; text-align:center; font-weight:bold;"
-    #     elif val == "proses" :
-    #         return "background-color:#FFCA09; color:white; text-align:center; font-weight:bold;"
-    #     elif val == "selesai" :
-    #         return "background-color:#12D200; color:white; text-align:center; font-weight:bold;"
-    #     else :
-    #         return ""
-
-    # ======================
+    
     df = load_aset_data()
     df = apply_global_filters(df)
 
-    # ======================
     df["nilai"] = pd.to_numeric(df["nilai"], errors="coerce").fillna(0)
 
-    # ======================
     df_sper_valid = df[
         df["nomor_surat"].notna() &
         ~df["nomor_surat"].astype(str).str.strip().isin(
@@ -122,7 +102,6 @@ def show_Dashboard_Global():
         )
     ].copy()
 
-    # ======================
     df_sper_valid["penyewa"] = (
         df_sper_valid["penyewa"]
         .fillna("Belum Ada Penyewa")
@@ -137,15 +116,9 @@ def show_Dashboard_Global():
         .str.strip()
     )
 
-    # ======================
-    # df_chart = df_filtered.copy()
     st.subheader("Filter Data")
     f1, f2 = st.columns(2)
-
-    # =================
     df_base = df_sper_valid.copy()
-
-    # =================
     with f1:
         tahun_selected = st.multiselect(
             "Tahun",
@@ -156,7 +129,6 @@ def show_Dashboard_Global():
     if tahun_selected:
         df_base = df_base[df_base["tahun"].isin(tahun_selected)]
 
-    # ==================
     with f2:
         jenis_selected = st.multiselect(
             "Jenis Aset",
@@ -167,11 +139,9 @@ def show_Dashboard_Global():
     if jenis_selected:
         df_base = df_base[df_base["jenis_aset"].isin(jenis_selected)]
 
-    # ===================
     st.session_state["tahun_selected"] = tahun_selected
     st.session_state["jenis_selected"] = jenis_selected
 
-    # ===================
     df_filtered = df_sper_valid.copy()
 
     if tahun_selected:
@@ -182,7 +152,6 @@ def show_Dashboard_Global():
         
     df_chart = df_filtered.copy()
 
-    # ======================
     current_year = datetime.now().year
 
     if tahun_selected:
@@ -196,7 +165,6 @@ def show_Dashboard_Global():
 
     st.divider()
 
-    # ==========================
     st.subheader("Summary")
     df_metric = df_summary.copy()
     sper_per_aset = (
@@ -223,8 +191,7 @@ def show_Dashboard_Global():
     c7.metric("SPER Lahan", int(sper_per_aset.get("Lahan", 0)))
     c8.metric("SPER Mess Menanggal", int(sper_per_aset.get("Mess", 0)))
     st.divider()
-    
-    # =======================
+
     if 'map_mode' not in st.session_state:
         st.session_state.map_mode = "pendayagunaan aset"
 
@@ -244,7 +211,6 @@ def show_Dashboard_Global():
         ):
             st.session_state.map_mode = "penghapusan aset"
 
-    # st.subheader("Peta Sebaran Aset dengan SPER")
     if st.session_state.map_mode == "pendayagunaan aset":
         render_map()
         
@@ -253,10 +219,7 @@ def show_Dashboard_Global():
     
     st.info(f"Mode Peta Aktif : **{st.session_state.map_mode.capitalize()}**")
     st.divider()
-    # =======================
-    # =======================
-    # DETAIL DATA PENGHAPUSBUKUAN ASET
-    # =======================
+
     st.subheader("📋 Detail Data Penghapusbukuan Aset")
 
     df_penghapusbukuan_aset = load_master_penghapusbukuan_aset()
@@ -291,9 +254,6 @@ def show_Dashboard_Global():
         "keterangan": "Keterangan"
     })
 
-    # =======================
-    # STYLE
-    # =======================
     st.markdown("""
     <style>
 
@@ -410,9 +370,6 @@ def show_Dashboard_Global():
     </style>
     """, unsafe_allow_html=True)
 
-    # =======================
-    # STATUS ICON
-    # =======================
     def make_status(val):
         v = str(val).strip().lower()
 
@@ -430,15 +387,8 @@ def show_Dashboard_Global():
 
     kolom_status = df_penghapusbukuan.columns[1:-1]
 
-
-    # =======================
-    # CEK MOBILE
-    # =======================
     is_mobile = st.query_params.get("mobile", "false") == "true"
 
-    # =======================
-    # DESKTOP = TABLE
-    # =======================
     if not is_mobile:
 
         df_html = df_penghapusbukuan.copy()
@@ -467,9 +417,6 @@ def show_Dashboard_Global():
             unsafe_allow_html=True
         )
 
-    # =======================
-    # MOBILE = CARD VIEW
-    # =======================
     else:
 
         for _, row in df_penghapusbukuan.iterrows():
@@ -516,7 +463,6 @@ def show_Dashboard_Global():
 
     st.divider()
 
-    # =======================
     st.subheader("Tren Nilai Kontribusi SPER per Tahun")
     trend = (
         df_chart
@@ -693,20 +639,17 @@ def show_Dashboard_Global():
 
     st.divider()
 
-    # =======================================
     def normalize_status(text):
         if pd.isna(text):
             return "Tidak Diketahui"
         text = str(text).strip().lower()
         mapping = {
-            # umum
             "disewa": "Disewa",
             "kosong": "Kosong",
             "internal": "Internal",
             "digunakan internal": "Internal",
             "digunakan internal pal": "Internal",
             
-            # kondisi
             "baik": "Kondisi Baik",
             "kondisi baik": "Kondisi Baik",
             "rusak": "Rusak",
@@ -717,14 +660,12 @@ def show_Dashboard_Global():
             "tidak aktif": "Tidak Aktif",
             "fasilitas proyek": "Internal",
 
-            # operasional
             "proses": "Proses",
             "fasilitas proyek": "Fasilitas Proyek"
         }
 
         return mapping.get(text, text.title())
 
-    # ============================
     st.subheader("Distribusi Kondisi Aset")
 
     from data_loader import (
@@ -814,7 +755,6 @@ def show_Dashboard_Global():
 
     summary = summary.sort_values(["jenis_aset", "status_aset"])
 
-    # ===========================
     c11,c12 = st.columns([1,1.3])
     with c11:
         df_jenis_count = (

@@ -256,7 +256,6 @@ def load_aset_data():
     df["tanggal_mulai"] = pd.to_datetime(df["tanggal_mulai"], errors="coerce")
     df["tanggal_selesai"] = pd.to_datetime(df["tanggal_selesai"], errors="coerce")
     df["tahun"] = df["tanggal_mulai"].dt.year
-    # df["tahun"] = df["nomor_surat"].apply(extract_year_from_nomor_surat)
     df["keterangan"] = df["keterangan"].fillna("")
 
     return df

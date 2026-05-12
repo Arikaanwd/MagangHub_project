@@ -33,7 +33,6 @@ def generate_filename(nama_lokasi):
     nama = nama.replace(" ", "_")
     return nama
 
-# ===============================
 @st.cache_data
 def load_master_aset_semua():
 

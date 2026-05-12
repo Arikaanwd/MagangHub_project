@@ -5,11 +5,9 @@ from data_loader import load_aset_data , load_master_kontainer
 from datetime import datetime
 import time
 
-#configurasi
 def show_Kontainer():
     st.title("📦 Dashboard SPER Kontainer")
     
-    # ======================
     time_placeholder = st.empty()
     now = datetime.now()
     time_str = now.strftime('%H:%M')
@@ -51,12 +49,10 @@ def show_Kontainer():
         except:
             return val
 
-    # =========================
     df = load_aset_data()
     df_master_kontainer = load_master_kontainer()
     df = df[df["jenis_aset"] == "Kontainer"].copy()
 
-    #==================
     df["nilai"] = pd.to_numeric(df["nilai"], errors="coerce").fillna(0)
     df["durasi_bulan"] = pd.to_numeric(df["durasi_bulan"], errors="coerce").fillna(0)
     df["volume_feet"] = pd.to_numeric(df["volume_feet"], errors="coerce")
@@ -68,7 +64,6 @@ def show_Kontainer():
         .str.strip()
     )
 
-    # ==================
     st.header("Filter Kontainer")
     g1, g2, g3, g4 = st.columns(4)
     df_base = df.copy()
@@ -101,7 +96,6 @@ def show_Kontainer():
 
     df_filtered = df_base.copy()
 
-    #==================
     df_sper_valid = df[
         df["nomor_surat"].notna() &
         (df["nomor_surat"].str.strip() != " ") &
@@ -111,13 +105,11 @@ def show_Kontainer():
         (df["nomor_surat"].str.strip() != "Digunakan Internal PT PAL")     
     ].copy()
 
-    # =================
     current_year = datetime.now().year
     tahun_dashboard = tahun[0] if tahun else current_year
 
     df_filtered = df_filtered[df_filtered["tahun"] == tahun_dashboard]
     
-    #==================
     total_kontainer = len(df_filtered)
     total_nilai = df_filtered["nilai"].sum()
 
@@ -130,7 +122,6 @@ def show_Kontainer():
     st.caption(f"Nilai sebenarnya: {format_rupiah(total_nilai)}")
     st.divider()
 
-    # ==============
     st.subheader("Tren Nilai Kontribusi SPER per Tahun")
     trend =(
         df_sper_valid
@@ -162,7 +153,6 @@ def show_Kontainer():
     st.plotly_chart(fig_trend, width="stretch")
     st.divider()
 
-    #=================
     st.subheader("Distribusi SPER Kontainer Berdasarkan Lokasi dan Unit Milik")
     
     c5, c6 = st.columns(2)
@@ -205,7 +195,6 @@ def show_Kontainer():
     fig_bar.update_yaxes(tickformat=",")
     fig_bar.update_layout(height=500)
 
-    # ====================
     volume_dist = (
         df_filtered
         .dropna(subset=["volume_feet"])
@@ -254,45 +243,6 @@ def show_Kontainer():
 
     st.divider()
 
-    # =====================
-    # kondisi_nilai = (
-    #     df_filtered
-    #     .groupby("status_aset", as_index=False)
-    #     .agg(total_nilai=("nilai", "sum"))
-    #     .sort_values("total_nilai", ascending=False)
-    # )
-
-    # kondisi_nilai["label_nilai"] = kondisi_nilai["total_nilai"].apply(label_nilai_id)
-    # kondisi_nilai["tooltip_nilai"] = kondisi_nilai["total_nilai"].apply(format_rupiah_full)
-        
-    # fig_kondisi_nilai = px.bar(
-    #     kondisi_nilai,
-    #     x="status_aset",
-    #     y="total_nilai",
-    #     color="status_aset",
-    #     text="label_nilai",
-    #     labels={
-    #         "status_aset": "Kondisi Aset",
-    #         "total_nilai": "Total Nilai Kontribusi (Rp)"
-    #     },
-    #     title="Nilai Kontribusi SPER Berdasarkan Kondisi Aset"
-    # )
-
-    # fig_kondisi_nilai.update_traces(
-    #     textposition="outside",
-    #     hovertemplate=
-    #         "<b>Kondisi</b>: %{x}<br>" +
-    #         "<b>Total Nilai</b>: %{customdata}<extra></extra>",
-    #     customdata=kondisi_nilai["tooltip_nilai"]
-    # )
-
-    # fig_kondisi_nilai.update_yaxes(tickformat=",")
-    # fig_kondisi_nilai.update_layout(height=500)
-    # st.plotly_chart(fig_kondisi_nilai, width="stretch")
-
-    # st.divider()
-
-    # ========================
     st.subheader("Penyewa SPER Berdasarkan Nilai Kontribusi")
     top_penyewa = (
         df_filtered
@@ -329,7 +279,6 @@ def show_Kontainer():
     st.plotly_chart(fig_penyewa, width="stretch")
     st.divider()
 
-    # ================================
     st.subheader("Proporsi Kontainer Berdasarkan Unit Milik dan Kondisi Aset")
     c7, c8 = st.columns(2)
     unit_count = (
@@ -351,7 +300,6 @@ def show_Kontainer():
     )
     fig_pie.update_layout(height=500)
 
-    # ====================
     df_status_kontainer = df_master_kontainer.copy()
     df_status_kontainer["status_aset"] = (
         df_status_kontainer["status_aset"]
@@ -405,7 +353,6 @@ def show_Kontainer():
     c7.plotly_chart(fig_pie, width="stretch")
     c8.plotly_chart(fig_kondisi_pie, width="stretch")
     
-    #======================
     df_filtered = (
         df_filtered
         .sort_values("kode_aset", ascending=True)

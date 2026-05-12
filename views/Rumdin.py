@@ -9,10 +9,7 @@ import time
 
 def show_Rumdin():
     st.title("🏠 Dashboard SPER Rumah Dinas")
-    # st.title("🏠 Dashboard SPER Rumah Dinas")
-    # st.set_page_config(layout="wide")
-
-    # ======================
+    
     time_placeholder = st.empty()
     now = datetime.now()
     time_str = now.strftime('%H:%M')
@@ -54,14 +51,11 @@ def show_Rumdin():
         except:
             return val
     
-    # =========================
     df = load_aset_data()
     df_master_rumdin = load_master_rumdin()
     
-    # =========================
     df = df[df["jenis_aset"] == "Rumah Dinas"].copy()
     
-    # ===================
     df["nilai"] = pd.to_numeric(df["nilai"], errors="coerce").fillna(0)
     df["durasi_bulan"] = pd.to_numeric(df["durasi_bulan"], errors="coerce").fillna(0)
     def normalize_kosong(series, label):
@@ -77,7 +71,6 @@ def show_Rumdin():
     df["status_aset"] = normalize_kosong(df["status_aset"], "Status Tidak Diisi")
     df["keterangan"] = normalize_kosong(df["keterangan"], "Kreditur Tidak Diisi")
 
-    # ===================
     st.header("Filter Rumah Dinas")
     b1, b2, b3, b4 = st.columns(4)
 
@@ -115,7 +108,6 @@ def show_Rumdin():
 
     st.divider()
 
-    # ===================
     df_sper_valid = df[
         df["nomor_surat"].notna() &
         (df["nomor_surat"].str.strip() != " ") &
@@ -123,22 +115,6 @@ def show_Rumdin():
         (df["nomor_surat"].str.strip() != "-")    
     ].copy()
     
-    # ==================
-    # inisialisasi tahun saat ini
-    # current_year = datetime.now().year
-    # selected_year = st.session_state.get("tahun_selected")
-
-    # if selected_year and len(selected_year) > 0:
-    #     df_filtered = df_sper_valid[df_sper_valid["tahun"].isin(selected_year)].copy()
-    # else:
-    #     # default: tahun saat ini
-    #     df_filtered = df_sper_valid[df_sper_valid["tahun"] == current_year].copy()
-
-    # if df_filtered.empty:
-    #     st.warning("Tidak ada data SPER untuk tahun yang dipilih")
-    #     st.stop()
-
-    # ===================
     total_sper = df_filtered["kode_aset"].nunique()
     total_rumah = df_master_rumdin["kode_rumdin"].dropna().str.strip().nunique()
     total_nilai = df_filtered["nilai"].sum()
@@ -151,7 +127,6 @@ def show_Rumdin():
     st.caption(f"Nilai sebenarnya: {format_rupiah(total_nilai)}")
     st.divider()
 
-    # ==================
     st.subheader("Tren Nilai Kontribusi SPER per Tahun")
     trend = (
         df_sper_valid
@@ -183,7 +158,6 @@ def show_Rumdin():
     st.plotly_chart(fig_line, width="stretch")
     st.divider()
 
-    # ============================
     st.subheader("Penyewa SPER Berdasarkan Nilai Kontribusi")
     top_penyewa=(
         df_filtered
@@ -222,7 +196,6 @@ def show_Rumdin():
 
     st.divider()
 
-    # =================
     st.subheader("Distribusi Rumah Dinas Berdasarkan Jumlah Data")
     dist_penyewa = (
         df_filtered
@@ -248,7 +221,6 @@ def show_Rumdin():
     )
     fig_bar_count.update_layout(height=480)
 
-    #pie chart
     df_master_rumdin["status_aset"] = (
         df_master_rumdin["status_aset"]
         .astype(str)
@@ -292,7 +264,6 @@ def show_Rumdin():
         st.plotly_chart(fig_pie_status, width="stretch")
     st.divider()
 
-    # ==============
     st.subheader("Distribusi Alamat Berdasarkan Kondisi Rumah Dinas")
     def kelompok_alamat(alamat):
         if not isinstance(alamat, str):
@@ -364,7 +335,6 @@ def show_Rumdin():
     st.plotly_chart(fig_alamat_status, width="stretch")
     st.divider()
 
-    # =========================
     df_filtered = df_filtered.reset_index(drop=True)
     df_filtered.index = df_filtered.index + 1
     df_filtered["nilai_rupiah"] = df_filtered["nilai"].apply(format_rupiah)

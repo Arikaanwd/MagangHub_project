@@ -13,12 +13,11 @@ from input_views.input_kontainer import show as show_Input_Kontainer
 from input_views.input_lahan import show as show_Input_Lahan
 from input_views.input_mess import show as show_Input_Mess
 
-# ===============================
 st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
 )
-# ===============================
+
 st.markdown("""
 <style>
 
@@ -109,7 +108,6 @@ table {
 </style>
 """, unsafe_allow_html=True)
 
-# ===============================
 st.markdown("""
 <style>
 #MainMenu {visibility: hidden;}
@@ -119,11 +117,9 @@ header {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
-# ===============================
 params = st.query_params
 page = params.get("page", "global")
 
-# ===============================
 if page == "global":
     show_Dashboard_Global()
 elif page == "rumdin":

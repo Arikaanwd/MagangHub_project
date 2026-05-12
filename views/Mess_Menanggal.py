@@ -35,7 +35,6 @@ def load_mess_data():
 
     return df
 
-# =====================
 def hitung_revenue_tahun(row, tahun):
     if pd.isna(row["tanggal_mulai"]) or pd.isna(row["tanggal_selesai"]):
         return 0
@@ -52,10 +51,6 @@ def hitung_revenue_tahun(row, tahun):
 def show_Mess_Menanggal():
     st.title("🏨Dashboard SPER Mess Menanggal")
 
-    # st.title("🏨Dashboard SPER Mess Menanggal")
-    # st.set_page_config(layout="wide")
-
-    # ======================
     time_placeholder = st.empty()
     now = datetime.now()
     time_str = now.strftime('%H:%M')
@@ -99,7 +94,6 @@ def show_Mess_Menanggal():
         except:
             return val
         
-    #===========================
     df = load_mess_data()
     df_master_mess = load_master_mess()
     df_tahun = df.copy()
@@ -109,16 +103,11 @@ def show_Mess_Menanggal():
     )
     df_all_mess = df.copy()
 
-    #============================
     df_all_mess = load_aset_data()
     df_all_mess = df_all_mess[df_all_mess["jenis_aset"] == "Mess"].copy()
     
-    #=====================
-    # df["nilai"] = pd.to_numeric(df["nilai"], errors="coerce").fillna(0)
-    # df["nilai_perbulan"] = pd.to_numeric(df["nilai_perbulan"], errors="coerce").fillna(0)
     df["durasi_bulan"] = pd.to_numeric(df["durasi_bulan"], errors="coerce").fillna(0)
     
-    # ==========================
     st.header("Filter Mess Menanggal")
     j1, j2, j3, j4 = st.columns(4)
     df_base = df.copy()
@@ -172,18 +161,8 @@ def show_Mess_Menanggal():
         if lantai_selected:
             df_base = df_base[df_base["lantai"].isin(lantai_selected)]
 
-    # =========================
     df_filtered = df_base.copy()
     
-    #=====================
-    # df_sper_valid = df[
-    #     df["nomor_surat"].notna() &
-    #     (df["nomor_surat"].str.strip() != " ") &
-    #     (df["nomor_surat"].str.strip() != "") &
-    #     (df["nomor_surat"].str.strip() != "-")     
-    # ].copy()
-
-    # ==========================
     tahun_dashboard = tahun[0] if tahun else datetime.now().year
     df_filtered["revenue_tahun"] = df_filtered.apply(
         lambda r: hitung_revenue_tahun(r, tahun_dashboard), axis=1
@@ -200,7 +179,6 @@ def show_Mess_Menanggal():
         (df_filtered["nomor_surat"].str.strip() != "-")
     ].copy()
 
-    #=====================
     total_sper = df_filtered["kode_aset"].nunique()
     total_nilai = df_filtered["revenue_tahun"].sum()
     total_mess = df_master_mess["kode_mess"].nunique()
@@ -215,7 +193,6 @@ def show_Mess_Menanggal():
 
     st.divider()    
     
-    # ==================
     st.subheader("Tren Nilai Kontribusi SPER per Tahun")
     if df["tanggal_mulai"].notna().any():
         start_year = int(df["tanggal_mulai"].dt.year.dropna().min())
@@ -258,7 +235,6 @@ def show_Mess_Menanggal():
 
     st.divider()
     
-    #=================
     top_penyewa=(
         df_filtered
         .groupby("penyewa")["revenue_tahun"]
@@ -270,32 +246,6 @@ def show_Mess_Menanggal():
     top_penyewa["label_nilai"] = top_penyewa["revenue_tahun"].apply(label_nilai_id)
     top_penyewa["tooltip_nilai"] = top_penyewa["revenue_tahun"].apply(format_rupiah_full)
     
-    # fig_penyewa = px.bar(
-    #     top_penyewa,
-    #     x="nilai",
-    #     y="penyewa",
-    #     orientation="h",
-    #     text="label_nilai",
-    #     labels={
-    #         "nilai": "Nilai Kontribusi (Rp)",
-    #         "penyewa": "Penyewa"
-    #     }
-    # )
-    # fig_penyewa.update_traces(
-    #     textposition="outside",
-    #     hovertemplate=
-    #         "<b>Penyewa</b>: %{y}<br>" +
-    #         "<b>Nilai Kontribusi</b>: %{customdata}<extra></extra>",
-    #     customdata=top_penyewa["tooltip_nilai"]
-    # )
-    # fig_penyewa.update_xaxes(
-    #     tickformat=","
-    # )
-    # fig_penyewa.update_layout(height=480)
-    # st.plotly_chart(fig_penyewa, width="stretch")
-    # barchart lantai
-
-    # ================
     st.subheader("Distribusi SPER per Lantai Mess Menanggal")
     df_filtered["lantai"] = df_filtered["keterangan"].astype(str).apply(get_lantai)
     
@@ -348,7 +298,6 @@ def show_Mess_Menanggal():
 
     st.divider()
     
-    # =================================
     st.subheader("Distribusi SPER Terhadap Lokasi Unit Kerja Penyewa dan Proporsi Kondisi Aset")
     
     unit_kerja = (
@@ -375,16 +324,8 @@ def show_Mess_Menanggal():
     )
     fig_bar.update_layout(height=550)
     
-    # ==============================
     df_status = df_master_mess.copy()
-    # start_year = pd.Timestamp(f"{tahun_dashboard}-01-01")
-    # end_year = pd.Timestamp(f"{tahun_dashboard}-12-31")
     
-    # df_sewa_tahun = df[
-    #     (df["tanggal_mulai"] <= end_year) &
-    #     (df["tanggal_selesai"] >= start_year)
-    # ].copy()
-
     df_sewa_tahun = df_filtered.copy()
 
     if penyewa:
@@ -424,7 +365,6 @@ def show_Mess_Menanggal():
         
     st.divider()
     
-    # ==================================
     df_filtered = df_filtered.reset_index(drop=True)
     df_filtered.index = df_filtered.index + 1
     df_filtered["nilai_rupiah"] = df_filtered["revenue_tahun"].apply(format_rupiah)

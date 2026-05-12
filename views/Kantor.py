@@ -10,7 +10,6 @@ import time
 def show_Kantor():
     st.title("🏢 Dashboard SPER Kantor")
 
-    # ======================
     time_placeholder = st.empty()
     now = datetime.now()
     time_str = now.strftime('%H:%M')
@@ -52,17 +51,14 @@ def show_Kantor():
         except:
             return val
         
-    # =========================
     df = load_aset_data()
     df_master_kantor = load_master_kantor()
     df = df[df["jenis_aset"] == "Kantor"].copy()
 
-    # ===================
     df["nilai"] = pd.to_numeric(df["nilai"], errors="coerce").fillna(0)
     df["durasi_bulan"] = pd.to_numeric(df["durasi_bulan"], errors="coerce").fillna(0)
     df["tahun"] = pd.to_numeric(df["tahun"], errors="coerce").fillna(0).astype(int)
     
-    # ==================
     st.header("Filter Kantor")
     a1, a2, a3 = st.columns(3)
     df_filtered = df.copy()
@@ -90,7 +86,6 @@ def show_Kantor():
         if status_:
             df_filtered = df_filtered[df_filtered["status_aset"].isin(status_)]
     
-    # ===================
     df_sper_valid = df[
         df["nomor_surat"].notna() &
         (df["nomor_surat"].str.strip() != " ") &
@@ -98,7 +93,6 @@ def show_Kantor():
         (df["nomor_surat"].str.strip() != "-")    
     ].copy()
     
-    # ==================
     df_summary = df_filtered.copy()
 
     if df_summary.empty:
@@ -158,7 +152,6 @@ def show_Kantor():
     st.plotly_chart(fig_trend, width="stretch")
     st.divider()
 
-    # ===================
     st.subheader("Distribusi Jumlah SPER Berdasarkan Lokasi Kantor")
     lokasi_kantor = (
         df_summary
@@ -197,7 +190,6 @@ def show_Kantor():
     st.plotly_chart(fig_bar, width="stretch")
     st.divider()
 
-    # ===============
     st.subheader("Penyewa SPER Berdasarkan Nilai Kontribusi")
     top_penyewa = (
         df_summary
@@ -234,7 +226,6 @@ def show_Kantor():
     st.plotly_chart(fig_penyewa, width="stretch")
     st.divider()
 
-    #=================
     st.subheader("Distribusi SPER Kantor Berdasarkan Jumlah dan Kontribusi Penyewa")
     sper_tahun = (
         df_summary
@@ -262,7 +253,7 @@ def show_Kantor():
         tickformat="d"
     )
     fig_year.update_layout(height=500)
-    # =============
+
     df_status = df_master_kantor.copy()
     df_status["status_aset"] = (
         df_status["status_aset"]
@@ -302,7 +293,6 @@ def show_Kantor():
         st.plotly_chart(fig_status, width="stretch")
     st.divider()
 
-    # ====================================
     st.subheader("📋 Detail SPER Kantor")
     df_summary = df_summary.reset_index(drop=True)
     df_summary.index = df_summary.index + 1

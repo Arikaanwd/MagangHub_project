@@ -8,10 +8,7 @@ import time
 
 def show_Lahan():
     st.title("🌱 Dashboard SPER Lahan") 
-    # st.title("🌱 Dashboard SPER Lahan")     
-    # st.set_page_config(layout="wide")
-
-    # ======================
+    
     time_placeholder = st.empty()
     now = datetime.now()
     time_str = now.strftime('%H:%M')
@@ -53,19 +50,15 @@ def show_Lahan():
         except:
             return val
         
-    # =========================
     df = load_aset_data()
     df_master_lahan = load_master_lahan()
 
-    # =========================
     df = df[df["jenis_aset"] == "Lahan"].copy()
     
-    #==========================
     df["nilai"] = pd.to_numeric(df["nilai"], errors="coerce").fillna(0)
     df["durasi_bulan"] = pd.to_numeric(df["durasi_bulan"], errors="coerce").fillna(0)
     df["luas_m2"] = pd.to_numeric(df["luas_m2"], errors="coerce").fillna(0)
     
-    # =========================
     st.header("Filter Lahan")
     h1, h2, h3 = st.columns(3)
     df_filtered = df.copy()
@@ -95,29 +88,12 @@ def show_Lahan():
 
     st.divider()
 
-    # ===================
     df_sper_valid = df[
         df["nomor_surat"].notna() &
         (df["nomor_surat"].str.strip() != "") &
         (df["nomor_surat"].str.strip() != "-")
     ].copy()
     
-    # ==================
-    # inisialisasi tahun saat ini
-    # current_year = datetime.now().year
-    # selected_year = st.session_state.get("tahun_selected")
-
-    # if selected_year:
-    #     df_filtered = df_sper_valid[df_sper_valid["tahun"].isin(selected_year)].copy()
-    # else:
-    #     # default: tahun saat ini
-    #     df_filtered = df_sper_valid[df_sper_valid["tahun"] == current_year].copy()
-
-    # if df_filtered.empty:
-    #     st.warning("Tidak ada data SPER untuk tahun yang dipilih")
-    #     st.stop()
-
-    # ==================
     total_sper = df_filtered["kode_aset"].nunique()
     total_luas = df_filtered["luas_m2"].sum()
     total_nilai = df_filtered["nilai"].sum()
@@ -130,7 +106,6 @@ def show_Lahan():
     st.caption(f"Nilai sebenarnya: {format_rupiah(total_nilai)}")
     st.divider()
 
-    # ==============
     st.subheader("Tren Nilai Kontribusi SPER per Tahun")
     trend = (
         df_sper_valid
@@ -162,7 +137,6 @@ def show_Lahan():
     st.plotly_chart(fig_trend, width="stretch")
     st.divider()
 
-    # ========================================
     st.subheader("Distribusi Lahan Berdasarkan Luas Tanah dan Kondisi Aset")
     nilai_penyewa = (
         df_filtered
@@ -196,7 +170,6 @@ def show_Lahan():
     st.plotly_chart(fig_nilai, width="stretch")
     st.divider()
 
-    # ======================
     st.subheader("Proporsi Jumlah Kondisi Aset Lahan")
 
     df_master_lahan["status_aset"] = (
@@ -229,7 +202,6 @@ def show_Lahan():
     )
     fig_status.update_layout(height=500)
 
-    # Luas lahan per Penyewa
     luas_penyewa = (
         df_filtered
         .groupby("penyewa")["luas_m2"]
@@ -264,7 +236,6 @@ def show_Lahan():
 
     st.divider()
 
-    # =================================
     st.subheader("📋 Detail SPER Lahan")
     df_filtered = (
         df_filtered
