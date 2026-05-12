@@ -17,44 +17,38 @@ def show_Dashboard_Global():
     st.title("🔔 Dashboard Global Aset")
 
     # ======================
-    # WAKTU DEVICE USER (AUTO)
+    # WAKTU DEVICE USER (FIX)
     # ======================
-
     time_placeholder = st.empty()
+    device_time = st_javascript("""
+    (() => {
+        const now = new Date();
 
-    # ambil waktu device browser
-    device_time = st_javascript(
-        """
-        new Date().toLocaleString('id-ID', {
-            timeZoneName: 'short'
-        })
-        """
-    )
+        const tanggal = now.toLocaleDateString('id-ID', {
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric'
+        });
 
-    if device_time:
+        const jam = now.toLocaleTimeString('id-ID', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
 
-        try:
-            # parse hasil JS
-            now = datetime.strptime(
-                device_time.replace(".", ":"),
-                "%d/%m/%Y, %H:%M:%S %Z"
-            )
+        return {
+            tanggal: tanggal,
+            jam: jam
+        };
+    })()
+    """)
 
-            tanggal = now.strftime("%d %B %Y")
-            jam = now.strftime("%H:%M")
+    tanggal = datetime.now().strftime("%d %B %Y")
+    jam = datetime.now().strftime("%H:%M")
 
-        except:
-            # fallback kalau parsing gagal
-            now = datetime.now()
-            tanggal = now.strftime("%d %B %Y")
-            jam = now.strftime("%H:%M")
-
-    else:
-        # fallback awal load
-        now = datetime.now()
-        tanggal = now.strftime("%d %B %Y")
-        jam = now.strftime("%H:%M")
-
+    if device_time and isinstance(device_time, dict):
+        tanggal = device_time.get("tanggal", tanggal)
+        jam = device_time.get("jam", jam)
 
     time_placeholder.markdown(
         f"""
@@ -64,7 +58,9 @@ def show_Dashboard_Global():
             color:gray;
             font-weight:500;
         ">
-            📅 {tanggal} &nbsp; | &nbsp; 🕒 {jam}
+            📅 {tanggal}
+            &nbsp; | &nbsp;
+            🕒 {jam}
         </div>
         """,
         unsafe_allow_html=True
@@ -103,18 +99,6 @@ def show_Dashboard_Global():
             tickformat=","
         )
 
-    # def warna_progres(val):
-    #     val = str(val).strip().lower()
-
-    #     if val == "belum" :
-    #         return "background-color:#FF0900; color:white; text-align:center; font-weight:bold;"
-    #     elif val == "proses" :
-    #         return "background-color:#FFCA09; color:white; text-align:center; font-weight:bold;"
-    #     elif val == "selesai" :
-    #         return "background-color:#12D200; color:white; text-align:center; font-weight:bold;"
-    #     else :
-    #         return ""
-
     # ======================
     df = load_aset_data()
     df = apply_global_filters(df)
@@ -148,7 +132,7 @@ def show_Dashboard_Global():
     # ======================
     # df_chart = df_filtered.copy()
     st.subheader("Filter Data")
-    f1, f2, f3 = st.columns(3)
+    f1, f2 = st.columns(2)
 
     # =================
     df_base = df_sper_valid.copy()
@@ -174,19 +158,9 @@ def show_Dashboard_Global():
 
     if jenis_selected:
         df_base = df_base[df_base["jenis_aset"].isin(jenis_selected)]
-
-    # ===================
-    with f3:
-        penyewa_selected = st.multiselect(
-            "Penyewa",
-            options=sorted(df_base["penyewa"].dropna().unique()),
-            default=st.session_state.get("penyewa_selected", [])
-        )
-
     # ===================
     st.session_state["tahun_selected"] = tahun_selected
     st.session_state["jenis_selected"] = jenis_selected
-    st.session_state["penyewa_selected"] = penyewa_selected
 
     # ===================
     df_filtered = df_sper_valid.copy()
@@ -196,9 +170,6 @@ def show_Dashboard_Global():
 
     if jenis_selected:
         df_filtered = df_filtered[df_filtered["jenis_aset"].isin(jenis_selected)]
-
-    if penyewa_selected:
-        df_filtered = df_filtered[df_filtered["penyewa"].isin(penyewa_selected)]
 
     df_chart = df_filtered.copy()
 
