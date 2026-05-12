@@ -21,7 +21,7 @@ def show_Dashboard_Global():
     time_placeholder.markdown(
         f"""
         <div style="text-align:right; font-size:17px; color:gray;">
-            📅 {now.strftime('%d %B %Y')} &nbsp; | &nbsp; {time_str} WIB
+            📅 {now.strftime('%d %B %Y')} &nbsp
         </div>
         """,
         unsafe_allow_html=True
@@ -145,7 +145,7 @@ def show_Dashboard_Global():
 
     if jenis_selected:
         df_filtered = df_filtered[df_filtered["jenis_aset"].isin(jenis_selected)]
-        
+
     df_chart = df_filtered.copy()
 
     # ======================
