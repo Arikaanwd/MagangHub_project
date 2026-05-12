@@ -17,62 +17,70 @@ from maps.leaflet_maps_areaPAL import render_map_area_PAL
 def show_Dashboard_Global():
     st.title("🔔 Dashboard Global Aset")
 
+     # Inisialisasi session state untuk waktu
+    if "device_tanggal" not in st.session_state:
+        st.session_state.device_tanggal = datetime.now().strftime("%d %B %Y")
+    if "device_jam" not in st.session_state:
+        st.session_state.device_jam = datetime.now().strftime("%H:%M")
+    if "time_initialized" not in st.session_state:
+        st.session_state.time_initialized = False
+
     time_placeholder = st.empty()
 
+    # JavaScript untuk mengambil waktu device
     device_time = st_javascript("""
     (() => {
         const now = new Date();
         
-        // Format tanggal dengan opsi yang lebih stabil
+        // Format tanggal
         const tanggal = now.toLocaleDateString('id-ID', {
             day: '2-digit',
             month: 'long',
             year: 'numeric'
         });
         
-        // Format waktu dengan AM/PM false dan timeZone dari device
+        // Format waktu lengkap dengan timezone device
         const jam = now.toLocaleTimeString('id-ID', {
             hour: '2-digit',
             minute: '2-digit',
             second: '2-digit',
-            hour12: false,
-            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+            hour12: false
         });
+        
+        // Kirim juga timestamp untuk validasi
+        const timestamp = now.getTime();
         
         return JSON.stringify({
             tanggal: tanggal,
-            jam: jam
+            jam: jam,
+            timestamp: timestamp
         });
     })()
     """)
 
-    # fallback default (server time)
-    tanggal = datetime.now().strftime("%d %B %Y")
-    jam = datetime.now().strftime("%H:%M:%S")
-
-    # kalau JS berhasil
-    if device_time:
+    # Update session state jika JavaScript berhasil
+    if device_time and not st.session_state.time_initialized:
         try:
             parsed = json.loads(device_time)
-            
-            tanggal = parsed.get("tanggal", tanggal)
-            jam = parsed.get("jam", jam)
-            
-            # Validasi format jam (pastikan memiliki format HH:MM:SS)
-            if jam and len(jam.split(':')) == 2:
-                # Jika hanya HH:MM, tambahkan detik
-                jam = jam + ":00"
-            elif jam and len(jam.split(':')) == 3:
-                # Jika sudah HH:MM:SS, biarkan
-                pass
-            else:
-                jam = datetime.now().strftime("%H:%M:%S")
-                
-        except Exception as e:
-            # Jika gagal parsing, gunakan server time
-            jam = datetime.now().strftime("%H:%M:%S")
-            tanggal = datetime.now().strftime("%d %B %Y")
+            if parsed.get("tanggal") and parsed.get("jam"):
+                st.session_state.device_tanggal = parsed["tanggal"]
+                st.session_state.device_jam = parsed["jam"]
+                st.session_state.time_initialized = True
+        except Exception:
+            pass
 
+    # Auto-refresh setiap detik untuk update waktu
+    current_time = time.time()
+    if "last_time_update" not in st.session_state:
+        st.session_state.last_time_update = current_time
+    
+    # Update waktu setiap 1 detik (hanya jika sudah terinisialisasi)
+    if st.session_state.time_initialized and (current_time - st.session_state.last_time_update >= 1):
+        # Refresh JavaScript untuk mendapatkan waktu terbaru
+        st.rerun()
+        st.session_state.last_time_update = current_time
+
+    # Tampilkan waktu dari session state
     time_placeholder.markdown(
         f"""
         <div style="
@@ -81,9 +89,9 @@ def show_Dashboard_Global():
             color:gray;
             font-weight:500;
         ">
-            📅 {tanggal}
+            📅 {st.session_state.device_tanggal}
             &nbsp; | &nbsp;
-            🕒 {jam}
+            🕒 {st.session_state.device_jam}
         </div>
         """,
         unsafe_allow_html=True
@@ -94,7 +102,7 @@ def show_Dashboard_Global():
 
     if time.time() - st.session_state.last_refresh > 60:
         st.session_state.last_refresh = time.time()
-        
+
     # ======================
     def format_rupiah_full(n):
         return f"Rp {n:,.0f}".replace(",", ".")
