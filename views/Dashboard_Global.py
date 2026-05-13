@@ -14,6 +14,7 @@ from maps.leaflet_maps_areaPAL import render_map_area_PAL
 from streamlit_autorefresh import st_autorefresh
 
 
+
 def show_Dashboard_Global():
     st.title("🔔 Dashboard Global Aset")
 

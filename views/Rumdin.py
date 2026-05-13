@@ -5,23 +5,58 @@ from data_loader import load_aset_data
 from data_loader import load_aset_data, load_master_rumdin
 from datetime import datetime
 import time
+from streamlit_autorefresh import st_autorefresh
+from zoneinfo import ZoneInfo
 
 
 def show_Rumdin():
     st.title("🏠 Dashboard SPER Rumah Dinas")
     
-    time_placeholder = st.empty()
-    now = datetime.now()
-    time_str = now.strftime('%H:%M')
-    time_placeholder.markdown(
+    st_autorefresh(
+        interval=60 * 1000,
+        key="refresh_dashboard"
+    )
+
+    now = datetime.now(
+        ZoneInfo("Asia/Jakarta")
+    )
+    
+    tanggal = now.strftime("%d %B %Y")
+    jam = now.strftime("%H:%M")
+
+    bulan_id = {
+        "January": "Januari",
+        "February": "Februari",
+        "March": "Maret",
+        "April": "April",
+        "May": "Mei",
+        "June": "Juni",
+        "July": "Juli",
+        "August": "Agustus",
+        "September": "September",
+        "October": "Oktober",
+        "November": "November",
+        "December": "Desember"
+    }
+
+    for eng, indo in bulan_id.items():
+        tanggal = tanggal.replace(eng, indo)
+
+    st.markdown(
         f"""
-        <div style="text-align:right; font-size:17px; color:gray; margin-bottom:50px;">
-            📅 {now.strftime('%d %B %Y')} &nbs
+        <div style="
+            text-align:right;
+            font-size:17px;
+            color:gray;
+            font-weight:500;
+        ">
+            📅 {tanggal}
+            &nbsp; | &nbsp;
+            🕒 {jam} WIB
         </div>
         """,
         unsafe_allow_html=True
     )
-    time.sleep(1)
 
     def format_rupiah(n):
         return f"Rp {n:,.0f}".replace(",", ".")
