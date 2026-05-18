@@ -173,7 +173,7 @@ def load_aset_data():
         kt.tanggal_selesai,
         mt.volume_feet,
         NULL,
-        NULL,
+        kt.no_surat_addendum AS surat_addendum,
         CAST(COALESCE(kt.nilai_kontribusi_pertahun_nonPPN, 0) AS DECIMAL(15,2))
     FROM master_kontainer mt
     JOIN transaksi_kontainer kt ON mt.id_kontainer = kt.id_kontainer
@@ -195,7 +195,7 @@ def load_aset_data():
         tl.tanggal_selesai,
         NULL,
         NULL,
-        NULL,
+        tl.no_surat_addendum AS surat_addendum,
         CAST(COALESCE(tl.nilai_kontribusi_pertahun_nonPPN, 0) AS DECIMAL(15,2))
     FROM master_lahan ml
     JOIN transaksi_lahan tl ON ml.id_lahan = tl.id_lahan
