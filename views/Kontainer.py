@@ -403,7 +403,7 @@ def show_Kontainer():
     st.dataframe(
         df_filtered[[
             "nomor_surat",
-            "nomor_surat_addendum",
+            "surat_addendum",
             "kode_aset",
             "lokasi",
             "volume_feet",
@@ -416,7 +416,7 @@ def show_Kontainer():
             "status_aset"
         ]].rename(columns={  
             "nomor_surat": "Nomor Surat",
-            "nomor_surat_addendum": "Nomor Surat Addendum",
+            "surat_addendum": "Nomor Surat Addendum",
             "kode_aset": "Kode Aset",
             "lokasi": "Lokasi",
             "volume_feet": "Volume Feet",
