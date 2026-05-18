@@ -403,6 +403,11 @@ def show_Mess_Menanggal():
     df_filtered = df_filtered.reset_index(drop=True)
     df_filtered.index = df_filtered.index + 1
     df_filtered["nilai_rupiah"] = df_filtered["revenue_tahun"].apply(format_rupiah)
+    df_filtered["nilai_kontribusi_perbulan_rp"] = (
+        df_filtered["nilai_kontribusi_perbulan"]
+        .fillna(0)
+        .apply(format_rupiah)
+    )
 
     st.subheader("📋Detail SPER Mess Menanggal")
     df_filtered["tanggal_mulai_tgl"] = df_filtered["tanggal_mulai"].apply(format_tanggal_indo)
@@ -415,7 +420,7 @@ def show_Mess_Menanggal():
             "lokasi",
             "keterangan",
             "durasi_bulan",
-            "nilai_kontribusi_perbulan",
+            "nilai_kontribusi_perbulan_rp",
             "nilai_rupiah",
             "tanggal_mulai_tgl",
             "tanggal_selesai_tgl",
@@ -427,7 +432,7 @@ def show_Mess_Menanggal():
             "lokasi": "Unit Kerja",
             "keterangan": "Blok Kamar",
             "durasi_bulan": "Durasi Sewa",
-            "nilai_kontribusi_perbulan": "Nilai Kontribusi per Bulan (Rp)",
+            "nilai_kontribusi_perbulan_rp": "Nilai Kontribusi per Bulan (Rp)",
             "nilai_rupiah": "Nilai Kontribusi Pertahun (Rp)",
             "tanggal_mulai_tgl": "Tanggal Mulai",
             "tanggal_selesai_tgl": "Tanggal Selesai",
