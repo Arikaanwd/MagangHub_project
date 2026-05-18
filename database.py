@@ -8,8 +8,7 @@ def get_connection():
         port=int(st.secrets["DB_PORT"]),
         user=st.secrets["DB_USER"],
         password=st.secrets["DB_PASSWORD"],
-        database=st.secrets["DB_NAME"],
-        connection_timeout=30
+        database=st.secrets["DB_NAME"]
     )
 
 
