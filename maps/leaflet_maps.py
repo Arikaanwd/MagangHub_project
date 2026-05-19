@@ -8,7 +8,7 @@ import streamlit as st
 import os
 import base64
 
-BASE_IMAGE_URL = "https://dashboardmonitoringaset.my.id/storage/lokasi"
+BASE_LOKASI_URL = "https://dashboardmonitoringaset.my.id/storage/lokasi"
 
 from data_loader import (
     load_master_lokasi,
@@ -183,7 +183,7 @@ def render_map():
             row = marker_lookup[selected]
             foto_path = row.get("foto_lokasi")
             if foto_path and str(foto_path) != "0":
-                image_url = BASE_IMAGE_URL + str(foto_path)
+                image_url = BASE_LOKASI_URL + str(foto_path)
             else:
                 image_url = "data:image/jpeg;base64," + base64.b64encode(
                     open(os.path.join('images', 'no-image.jpg'), 'rb').read()

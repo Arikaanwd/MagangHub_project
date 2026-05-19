@@ -5,7 +5,7 @@ import streamlit as st
 import base64
 import os
 
-BASE_IMAGE_URL = "https://dashboardmonitoringaset.my.id/storage/penghapusbukuan"
+BASE_PENGHAPUSBUKUAN_URL = "https://dashboardmonitoringaset.my.id/storage/penghapusbukuan"
 
 from data_loader import load_master_lokasi_penghapusbukuan
 
@@ -125,7 +125,7 @@ def render_map_area_PAL():
             data = marker_lookup[selected]
             
             if data["foto"] and str(data["foto"]) != "0":
-                image_url = BASE_IMAGE_URL + str(data["foto"])
+                image_url = BASE_PENGHAPUSBUKUAN_URL + str(data["foto"])
             else:
                 no_image_path = os.path.join('images', 'no-image.jpg')
                 if os.path.exists(no_image_path):
