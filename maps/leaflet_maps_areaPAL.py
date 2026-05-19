@@ -5,13 +5,12 @@ import streamlit as st
 import base64
 import os
 
-BASE_PENGHAPUSBUKUAN_URL = "https://dashboardmonitoringaset.my.id/storage/penghapusbukuan"
+BASE_PENGHAPUSBUKUAN_URL = "https://dashboardmonitoringaset.my.id/storage/penghapusbukuan/"
 
 from data_loader import load_master_lokasi_penghapusbukuan
 
 
-# ===============================
-# @st.cache_data
+@st.cache_data
 def get_data():
     return load_master_lokasi_penghapusbukuan()
 
