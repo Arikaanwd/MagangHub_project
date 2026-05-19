@@ -5,7 +5,7 @@ import streamlit as st
 import base64
 import os
 
-BASE_IMAGE_URL = "https://dashboardmonitoringaset.my.id/storage/"
+BASE_IMAGE_URL = "https://dashboardmonitoringaset.my.id/storage/penghapusbukuan"
 
 from data_loader import load_master_lokasi_penghapusbukuan
 
