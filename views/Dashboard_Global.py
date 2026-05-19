@@ -96,7 +96,6 @@ def show_Dashboard_Global():
             tickformat=","
         )
 
-    
     df = load_aset_data()
     df = apply_global_filters(df)
 

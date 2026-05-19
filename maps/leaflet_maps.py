@@ -8,7 +8,7 @@ import streamlit as st
 import os
 import base64
 
-BASE_IMAGE_URL = "http://127.0.0.1:8000/storage/"
+BASE_IMAGE_URL = "https://dashboardmonitoringaset.my.id/storage/"
 
 from data_loader import (
     load_master_lokasi,

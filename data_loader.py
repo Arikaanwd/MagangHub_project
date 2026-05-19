@@ -151,6 +151,7 @@ def load_aset_data():
         tk.tanggal_selesai,
         NULL AS volume_feet,
         NULL AS nilai_kontribusi_perbulan,
+        NULL,
         tk.no_surat_addendum AS surat_addendum,
         CAST(COALESCE(tk.nilai_kontribusi_pertahun_nonPPN, 0) AS DECIMAL(15,2)) AS nilai
     FROM master_kantor mk
@@ -174,6 +175,7 @@ def load_aset_data():
         mt.volume_feet,
         NULL,
         NULL,
+        NULL,
         CAST(COALESCE(kt.nilai_kontribusi_pertahun_nonPPN, 0) AS DECIMAL(15,2))
     FROM master_kontainer mt
     JOIN transaksi_kontainer kt ON mt.id_kontainer = kt.id_kontainer
@@ -193,6 +195,7 @@ def load_aset_data():
         tl.luas_m2,
         tl.tanggal_mulai,
         tl.tanggal_selesai,
+        NULL,
         NULL,
         NULL,
         NULL,
@@ -218,6 +221,7 @@ def load_aset_data():
         NULL,
         CAST(COALESCE(tm.nilai_kontribusi_perbulan, 0) AS DECIMAL(15,2)),
         NULL,
+        NULL,
         CAST(COALESCE(tm.nilai_kontribusi_perbulan, 0) * tm.durasi_bulan AS DECIMAL(15,2))
     FROM master_mess mm
     LEFT JOIN transaksi_mess tm ON mm.id_mess = tm.id_mess
@@ -237,6 +241,7 @@ def load_aset_data():
         NULL,
         tr.tanggal_mulai,
         tr.tanggal_selesai,
+        NULL,
         NULL,
         NULL,
         NULL,
